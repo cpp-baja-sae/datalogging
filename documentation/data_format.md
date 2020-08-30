@@ -68,7 +68,7 @@ frame.
 
 ## info.json format
 
-```json
+```js
 {
     "version": "1",         // info.json format version
     "frame_time_us": "500", // Time per data frame, in microseconds
