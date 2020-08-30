@@ -1,0 +1,23 @@
+.root {
+  background: var(--surface-background);
+  position: absolute;
+  box-shadow: 0 0 2em black;
+  display: grid;
+  grid-auto-rows: min-content;
+  row-gap: 0.2em;
+  padding: 0.5em;
+  border-radius: 0.5em;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto auto min-content;
+}
+
+.spacer {
+  min-width: 2em;
+}
+
+.label {
+  font-weight: bold;
+}

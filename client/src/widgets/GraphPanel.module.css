@@ -1,0 +1,16 @@
+.root {
+    display: grid;
+    grid-auto-rows: auto;
+    grid-template-columns: 1fr;
+    overflow: none;
+}
+
+.bottomBorder {
+    border-bottom: 1px solid var(--light-border);
+}
+
+.addGraph {
+    padding: 0.5em;
+    display: grid;
+    grid-template-columns: 14em;
+}

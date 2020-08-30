@@ -136,7 +136,7 @@ const data_dir = '/root/datalogs';
     });
 
     // Serve user interface from /ui/*.
-    app.use('/ui', express.static('../frontend/build/'));
+    app.use('/ui', express.static('../client/build/'));
 
     console.log('Initialization complete! Running server.');
 

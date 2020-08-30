@@ -1,0 +1,52 @@
+.root {
+    height: 10em;
+    display: grid;
+    grid-template-columns: 15em 1fr;
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.root.expanded {
+    height: 30em;
+}
+
+.info, .settings {
+    padding: 0.5rem;
+    border-right: 1px dotted var(--dark-border);
+}
+
+.settings {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    row-gap: 1rem;
+}
+
+.header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+.header button {
+    margin-top: -0.5rem; 
+}
+
+.infoHeader {
+    opacity: 0.5;
+}
+
+.displayName {
+    font-weight: bold;
+}
+
+.channelSelect {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 1em;
+}
+
+.divider {
+    opacity: 0.5;
+    border-top: 1px dotted var(--dark-border);
+    padding: 0.5em 1em 0em 1em;
+    margin: 0em -0.5em;
+}
