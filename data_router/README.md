@@ -8,6 +8,7 @@ starting and stopping recording or changing how much data is streamed in
 real-time.
 
 ## Development notes
+
 `build.sh` compiles the program. `run.sh` executes it with sudo priviledges.
 This program requires the `pigpio` library which may need to be installed with 
 `sudo apt install libpigpio-dev`. It also requires cmake and a c compiler, which 
