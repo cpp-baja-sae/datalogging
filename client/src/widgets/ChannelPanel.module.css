@@ -1,0 +1,58 @@
+.root {
+  padding: 0.5em;
+  display: grid;
+  row-gap: 0.5em;
+  column-gap: 0.5em;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media(min-width: 35em) {
+  .root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 56em) {
+  .root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 77em) {
+  .root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 98em) {
+  .root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 119em) {
+  .root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.card {
+  padding: 1em;
+  border: 1px solid var(--light-border);
+  border-radius: 0.5em;
+  max-width: 100%;
+}
+
+.identifier {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.5rem;
+}
+
+.graphContainer {
+  margin-top: 1em;
+  height: 5rem;
+  border-top: 1px solid var(--light-border);
+  border-bottom: 1px solid var(--light-border);
+}

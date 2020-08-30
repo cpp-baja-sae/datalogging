@@ -1,0 +1,16 @@
+.App {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+  display: grid;
+  grid-template-rows: auto 1px 1fr 1px auto;
+  color: #fff;
+}
+
+.scrollPane {
+  overflow: hidden;
+  overflow-y: scroll;
+}

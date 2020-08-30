@@ -1,0 +1,9 @@
+.surface {
+    background: var(--surface-background);
+}
+
+.border {
+    background: var(--dark-border);
+    width: 100%;
+    height: 100%;
+}

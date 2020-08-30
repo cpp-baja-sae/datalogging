@@ -1,0 +1,79 @@
+.root {
+  padding: 0.5em;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.grid {
+  padding: 0.5em;
+  display: grid;
+  row-gap: 0.5em;
+  column-gap: 0.5em;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media(min-width: 35em) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 56em) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 77em) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 98em) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media(min-width: 119em) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.card {
+  padding: 1em;
+  border: 1px solid #f0f;
+  border-radius: 0.5em;
+  max-width: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1em 1fr;
+  column-gap: 1em;
+  cursor: pointer;
+}
+
+.filename {
+  margin: auto 0;
+  font-weight: bold;
+}
+
+.description {
+  opacity: 0.6;
+}
+
+.title {
+  font-weight: bold;
+  text-align: left;
+  margin-left: 2rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.graphContainer {
+  margin-top: 1em;
+  height: 5rem;
+  border-top: 1px solid var(--light-border);
+  border-bottom: 1px solid var(--light-border);
+}
