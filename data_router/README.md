@@ -28,13 +28,3 @@ task:
   data over a serial connection.
 - `command_worker` is responsible for receiving and processing commands over a
   serial connection.
-
-## TODO:
-- Currently, the serial connections are simulated with Unix sockets so that we
-  do not have to use a second rpi for testing. This will eventually need to 
-  change.
-- `realtime_stream_worker` currently sporatically sends frames from the full
-  resolution data. This should be changed so that it sends all the data from
-  a specific resolution so that we can see the minimum and maximum data.
-- `sensor_read_worker` is set up for reading from the ADCs. Once the teensies
-  come in we should change that.
