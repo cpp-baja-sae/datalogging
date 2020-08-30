@@ -14,8 +14,7 @@ cause any connected browsers to refresh their page, thereby displaying the
 changes. `build.sh` will create a publishable version of the website in the
 build/ folder. The server component is configured to serve the webpage from
 this folder when it is started up, so you do not have to move the files after
-they finish building.
-
-public/ contains files that will be directly copied to the website. src/
-contains files that will be squished down and compiled with any required
-libraries into a single javascript file, which is then included with the rest of the website.
+they finish building. public/ contains files that will be directly copied to the 
+website. src/ contains files that will be squished down and compiled with any 
+required libraries into a single javascript file, which is then included with 
+the rest of the website.
