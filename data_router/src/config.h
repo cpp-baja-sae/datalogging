@@ -8,12 +8,14 @@
 // buffer. Increasing it makes the program more stable as it allows the program
 // to be busy for longer before the buffer fills up. However, there is an upper
 // limit to how big the buffer can be which is affected by a number of factors.
-#define GPIO_BUFFER_LEN 16
+#define GPIO_BUFFER_LEN 40
 
 // Pins 5 through 12 are used to receive data from the Teensy.
 #define TEENSY_FIRST_DATA_PIN 5
 // The pin that triggers the Teensy to output the next byte (step).
 #define TEENSY_STEP_CLOCK_PIN 24
+// Utility pin for synchronizing an oscilloscope for debugging.
+#define OSCILLOSCOPE_SYNC_PIN 18
 
 // Write to the file in 4k blocks.
 #define FILE_BLOCK_SIZE 4096 

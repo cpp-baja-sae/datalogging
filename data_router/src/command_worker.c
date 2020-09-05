@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -9,6 +10,8 @@
 #include "config.h"
 #include "workers.h"
 
+char STATIC_INFO_CONTENT[] = DEFAULT_INFO_CONTENT;
+
 void run_command(
     char command, 
     char *message, 
@@ -16,10 +19,8 @@ void run_command(
     char **response, 
     int *response_length
 ) {
-    *response_length = IPC_RESPONSE_SIZE;
-    *response = malloc(IPC_RESPONSE_SIZE);
-    memset(*response, '\0', IPC_RESPONSE_SIZE);
-    (*response)[0] = command;
+    *response = NULL;
+    *response_length = 0;
 
     switch (command) {
     case IPC_COMMAND_STOP:
@@ -36,16 +37,8 @@ void run_command(
         break;
     case IPC_COMMAND_GET_CONFIG:
         printf("[SOCKET] Received get config command.\n");
-        // Response format:
-        // 1: NUM_ADCS
-        // 2: NUM_CHANNELS (per adc)
-        // 3: 0x01 if currently writing to a file.
-        // 4-5: stream_frame_interval
-        (*response)[1] = NUM_ADCS;
-        (*response)[2] = NUM_CHANNELS;
-        (*response)[3] = write_to_file_flag;
-        (*response)[4] = stream_frame_interval >> 8;
-        (*response)[5] = stream_frame_interval % 0xFF;
+        *response = STATIC_INFO_CONTENT;
+        *response_length = DEFAULT_INFO_SIZE;
         break;
     case IPC_COMMAND_SET_STREAM_INTERVAL:
         printf("[SOCKET] Received change stream interval command.\n");
@@ -154,7 +147,15 @@ void *command_worker(void *args) {
             int response_length;
             run_command(command, message, ilength, &response, &response_length);
 
-            if (write(client_fd, response, response_length) < 0) {
+            char sent_length[2] = {
+                (response_length >> 8) & 0xFF, 
+                response_length & 0xFF
+            };
+            bool error = write(client_fd, sent_length, 2) < 0;
+            if (!error) {
+                error = write(client_fd, response, response_length) < 0;
+            }
+            if (error) {
                 printf(
                     "[SOCKET] Failed to send response, error code %i.\n",
                     errno

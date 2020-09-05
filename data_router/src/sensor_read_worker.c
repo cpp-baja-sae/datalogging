@@ -19,6 +19,7 @@ void initialize_gpio() {
         exit(1);
     }
 
+    gpioSetMode(OSCILLOSCOPE_SYNC_PIN, PI_OUTPUT);
     gpioSetMode(TEENSY_STEP_CLOCK_PIN, PI_OUTPUT);
     for (int bit = 0; bit < 8; bit++) {
         gpioSetMode(TEENSY_FIRST_DATA_PIN + bit, PI_INPUT);
@@ -72,97 +73,65 @@ void use_realtime_priority() {
 }
 
 int create_tx_waveform() {
-    rawSPI_t info = {
-        .clk = PIN_SCLK,
-        .mosi = PIN_UNUSED,
-        .ss_pol = 1, // Resting value for the slave select pin.
-        .ss_us = 1, // How long to wait after switching the slave select value.
-        .clk_pol = 0, // Resting value for the clock pin.
-        .clk_pha = 0, // 0 indicates sample on 1st clock edge, 1 indicates 2nd edge.
-        .clk_us = 1, // Microseconds between clock pulses.
-    };
+    gpioWaveAddNew();
 
     int time_offset = 0;
     for (int cycle = 0; cycle < GPIO_BUFFER_LEN; cycle++) {
-        char data_buf[NUM_CHANNELS * 2 + 1];
-        for (int i = 0; i < NUM_CHANNELS * 2; i++) {
-            data_buf[i] = 0xFF;
+        rawWave_t oscilloscope_signal[3];
+        oscilloscope_signal[0].gpioOn = 0;
+        oscilloscope_signal[0].gpioOff = 0;
+        oscilloscope_signal[0].usDelay = time_offset;
+        oscilloscope_signal[0].flags = 0;
+        oscilloscope_signal[1].gpioOn = 1 << OSCILLOSCOPE_SYNC_PIN;
+        oscilloscope_signal[1].gpioOff = 0;
+        oscilloscope_signal[1].usDelay 
+            = (STEP_CLOCK_ON_TIME + STEP_CLOCK_OFF_TIME) * FRAME_SIZE / 2;
+        oscilloscope_signal[1].flags = 0;
+        oscilloscope_signal[2].gpioOn = 0;
+        oscilloscope_signal[2].gpioOff = 1 << OSCILLOSCOPE_SYNC_PIN;
+        oscilloscope_signal[2].usDelay = 0;
+        oscilloscope_signal[2].flags = 0;
+        rawWaveAddGeneric(3, oscilloscope_signal);
+
+        // Read FRAME_SIZE bytes in FRAME_SIZE steps.
+        rawWave_t clock_signal[3];
+        clock_signal[0].gpioOn = 0;
+        clock_signal[0].gpioOff = 0;
+        clock_signal[0].flags = 0;
+        clock_signal[1].gpioOn = 1 << TEENSY_STEP_CLOCK_PIN;
+        clock_signal[1].gpioOff = 0;
+        clock_signal[1].usDelay = STEP_CLOCK_ON_TIME;
+        clock_signal[1].flags = 0;
+        clock_signal[2].gpioOn = 0;
+        clock_signal[2].gpioOff = 1 << TEENSY_STEP_CLOCK_PIN;
+        clock_signal[2].usDelay = STEP_CLOCK_OFF_TIME;
+        clock_signal[2].flags = WAVE_FLAG_READ;
+        for (int step = 0; step < FRAME_SIZE; step++) {
+            clock_signal[0].usDelay = time_offset;
+            rawWaveAddGeneric(3, clock_signal);
+            time_offset += STEP_CLOCK_ON_TIME + STEP_CLOCK_OFF_TIME;
         }
-        // Read every value, 16 bits per value.
-        int rbits = NUM_CHANNELS * 16;
-        int tbits = rbits;
-        // Generates a waveform which requests data from the SPI bus.
-        rawWaveAddSPI(
-            &info,   // Information about which pins to set.
-            time_offset, // When to start sending the waveform.
-            PIN_CS,      // Which slave select pin to use.
-            data_buf,    // What data to send.
-            tbits,       // How many bits to write from the buffer.
-            0,           // Which received bit to start storing.
-            rbits,       // Which received bit to stop storing on.
-            tbits        // Overall, how many bits to read (with/out storing).
-        );
-
-        // 16 bits per channel, 1 clock cycle per bit, 2us per clock cycle.
-        // Add some extra delay for stability.
-        int read_time = (NUM_CHANNELS * 16 * 2) + 6;
-
-        gpioPulse_t convst_signal[8];
-        convst_signal[0].gpioOn  = 0;
-        convst_signal[0].gpioOff = 0;
-        convst_signal[0].usDelay = time_offset;
-
-        convst_signal[1].gpioOn  = 1 << PIN_CONVST;
-        convst_signal[1].gpioOff = 0;
-        convst_signal[1].usDelay = read_time;
-
-        convst_signal[2].gpioOn  = 0;
-        convst_signal[2].gpioOff = 1 << PIN_CONVST;
-        convst_signal[2].usDelay = 8;
-
-        convst_signal[3].gpioOn  = 1 << PIN_CONVST;
-        convst_signal[3].gpioOff = 0;
-        convst_signal[3].usDelay = FRAME_TIME - 8 - read_time;
-        gpioWaveAddGeneric(4, convst_signal);
-
-        // gpioPulse_t reset_signal[8];
-        // reset_signal[0].gpioOn  = 0;
-        // reset_signal[0].gpioOff = 0;
-        // reset_signal[0].usDelay = time_offset;
-
-        // reset_signal[1].gpioOn = 0;
-        // reset_signal[1].gpioOff  = 1 << PIN_RESET;
-        // reset_signal[1].usDelay = read_time;
-
-        // reset_signal[2].gpioOn = 1 << PIN_RESET;
-        // reset_signal[2].gpioOff  = 0;
-        // reset_signal[2].usDelay = 8;
-
-        // reset_signal[3].gpioOn = 0;
-        // reset_signal[3].gpioOff  = 1 << PIN_RESET;
-        // reset_signal[3].usDelay = FRAME_TIME - 8 - read_time;
-        // gpioWaveAddGeneric(4, reset_signal);
-    
-        time_offset += FRAME_TIME;
     }
 
     // These two pulses do nothing for FRAME_TIME * GPIO_BUFFER_LEN microseconds.
-    // This ensures that there is still a delay after the last transaction
+    // This ensures that there is still a delay after the last step
     // before the whole waveform starts over again.
-    gpioPulse_t end_padding[2];
+    rawWave_t end_padding[2];
     end_padding[0].gpioOn = 0;
     end_padding[0].gpioOff  = 0;
     end_padding[0].usDelay = time_offset;
+    end_padding[0].flags = 0;
     // This second pulse is necessary to make the first delay actually occur.
     end_padding[1].gpioOn = 0;
     end_padding[1].gpioOff  = 0;
     end_padding[1].usDelay = 0;
-    gpioWaveAddGeneric(2, end_padding);
+    end_padding[0].flags = 0;
+    rawWaveAddGeneric(2, end_padding);
 
     int wave_id = gpioWaveCreate();
     if (wave_id < 0) {
         printf("[SENSOR] Failed to create waveform! Try reducing ");
-        printf("NUM_BATCHES.\n");
+        printf("GPIO_BUFFER_LEN.\n");
         exit(1);
     }
 
@@ -192,19 +161,28 @@ void sensor_read_loop() {
     gpioWaveTxSend(waveform_id, PI_WAVE_MODE_REPEAT);
 
     int reading_from = 0;
+    printf("%i %i\n", waveform_info.topCB, waveform_info.botCB);
+    printf("%i %i\n", waveform_info.topOOL, waveform_info.botOOL);
+    printf("%i %i\n", waveform_info.numTOOL, waveform_info.numBOOL);
     while (continue_flag) {
         int current_cycle_in_progress 
             = (rawWaveCB() - bottom_cb) / cbs_per_cycle % GPIO_BUFFER_LEN;
 
         int cycles_read = 0;
         while (reading_from != current_cycle_in_progress) {
-            int current_ool = top_ool - reading_from * FRAME_SIZE;
+            // The -1 is there to appease the ancient GPIO gods so that they may
+            // bestow the blessings of functioning code upon us.
+            int current_ool = top_ool - reading_from * FRAME_SIZE - 1;
 
             for (int index = 0; index < FRAME_SIZE; index++) {
                 uint32_t pin_values = rawWaveGetOut(current_ool);
                 primary_file_buffer[pbuf_write_index + index]
                     = (pin_values >> TEENSY_FIRST_DATA_PIN) & 0xFF;
                 current_ool--;
+            }
+
+            if (reading_from == 0) {
+                printf("%i\n", primary_file_buffer[pbuf_write_index]);
             }
 
             // This propogates the data we just wrote to the other LODs. Its 
