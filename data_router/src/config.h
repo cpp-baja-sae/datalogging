@@ -49,6 +49,11 @@
 
 #include "generated/config.h"
 
+// Pins 5 through 12 are used to receive data from the Teensy.
+#define TEENSY_FIRST_DATA_PIN 5
+// The pin that triggers the Teensy to output the next byte (step).
+#define TEENSY_STEP_CLOCK_PIN 24
+
 // Write to the file in 4k blocks.
 #define FILE_BLOCK_SIZE 4096 
 // I don't think the buffer needs to be this big but it's not really a problem.

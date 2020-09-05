@@ -54,17 +54,17 @@ unspecified at the moment and are hard-coded in.
 Frames at resolutions lower than 0 represent larger intervals of time. Becasue
 of this, they may miss spikes or dips that are apparent in higher resolution
 data. Because of this, they contain three *subframes*. The first stores the
-average of several frames recorded in the next more detailed level of detail.
-The second stores the minimum, and the third stores the maximum. These last
+minimum of several frames recorded in the next more detailed level of detail.
+The second stores the maximum, and the third stores the average. The first
 two make spikes and dips apparent. To illustrate how this is stored in memory,
 suppose we have a datalog where each frame contains 8 `unorm16` values, possibly
 from an ADC. Each frame in LOD 0 would then contain 8 16-bit values, one after
 the other. LOD 1 would be a quarter of that resolution, so each frame would be
 the equivalent of 4 frames in LOD 0. Each frame in LOD 1 would start with the
-averages of the first 16 bit value in all 4 LOD 0 frames, follwed by the average
-of the second, the average of the third, and so on. It would then contain the
-minimum value amongs the first 16 bit value in all 4 LOD 0 frames, follwed by
-the second, third, and so on. Finally, it contains all the maximum values. This
+minimum of the first 16 bit value in all 4 LOD 0 frames, followed by the minimum
+of the second, the minimum of the third, and so on. It would then contain the
+maximum value amongs the first 16 bit value in all 4 LOD 0 frames, follwed by
+the second, third, and so on. Finally, it contains all the average values. This
 all results in each low-resolution frame being three times the size of a regular
 frame.
 
