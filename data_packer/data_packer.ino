@@ -2,8 +2,8 @@
 
 IntervalTimer testTimer;
 
-// 64 bytes are transmitted every frame.
-#define STEPS_PER_FRAME 64
+// 100 bytes are transmitted every frame.
+#define STEPS_PER_FRAME 100
 
 // This lights up when there is an error.
 #define PIN_ONBOARD_LED 13
@@ -15,27 +15,47 @@ IntervalTimer testTimer;
 #define PIN_ADCS_RESET 2
 // Conversion start pin
 #define PIN_ADCS_CONVST 3
-// DOUTA and DOUTB pins for each ADC
-#define PIN_ADC0_DOUTA 4
-#define PIN_ADC0_DOUTB 5
-#define PIN_ADC1_DOUTA 6
-#define PIN_ADC1_DOUTB 7
-#define PIN_ADC2_DOUTA 8
-#define PIN_ADC2_DOUTB 9
-#define PIN_ADC3_DOUTA 10
-#define PIN_ADC3_DOUTB 11
+// DOUTA and DOUTB pins for each ADC. These pin numbers are selected so every
+// pin can be read at once from GPIO6_DR (starting at bit 16)
+// LSB
+#define PIN_ADC0_DOUTA 19
+#define PIN_ADC0_DOUTB 18
+#define PIN_ADC1_DOUTA 14
+#define PIN_ADC1_DOUTB 15
+#define PIN_ADC2_DOUTA 40
+#define PIN_ADC2_DOUTB 41
+#define PIN_ADC3_DOUTA 17
+// MSB
+#define PIN_ADC3_DOUTB 16
 
 // Pauses execution of the program for a single clock cycle
 #define DELAY_CLOCK_CYCLE __asm__("nop\n")
 // Pauses execution of the program for 3 clock cycles. Our clock runs at 600MHz,
 // so this results in a 5ns delay.
-#define DELAY_5NS DELAY_CLOCK_CYCLE; DELAY_CLOCK_CYCLE; DELAY_CLOCK_CYCLE
-#define DELAY_10NS DELAY_5NS; DELAY_5NS
-#define DELAY_15NS DELAY_5NS; DELAY_5NS; DELAY_5NS
-#define DELAY_20NS DELAY_5NS; DELAY_5NS; DELAY_5NS; DELAY_5NS
-#define DELAY_25NS DELAY_5NS; DELAY_5NS; DELAY_5NS; DELAY_5NS; DELAY_5NS
+#define DELAY_5NS                                                              \
+    DELAY_CLOCK_CYCLE;                                                         \
+    DELAY_CLOCK_CYCLE;                                                         \
+    DELAY_CLOCK_CYCLE
+#define DELAY_10NS                                                             \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS
+#define DELAY_15NS                                                             \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS
+#define DELAY_20NS                                                             \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS
+#define DELAY_25NS                                                             \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS;                                                                 \
+    DELAY_5NS
 
-void setupOutputPin(int pinNumber, int value) {
+void setupOutputPin(const int pinNumber, const int value) {
     pinMode(pinNumber, OUTPUT);
     digitalWriteFast(pinNumber, value);
 }
@@ -48,20 +68,27 @@ void setup() {
     setupOutputPin(PIN_ADCS_RESET, LOW);
     setupOutputPin(PIN_ADCS_CONVST, HIGH);
 
+    pinMode(PIN_ADC0_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC0_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC1_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC1_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC2_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC2_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC3_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC3_DOUTB, INPUT_PULLUP);
+
     // For error messages.
-    Serial.begin(9600);
+    Serial.begin(115200);
     delay(2000);
 
-    testTimer.begin(onStepClockReceived, 5);
+    testTimer.begin(onStepClockReceived, 2);
     endStep();
 }
 
 volatile bool stepClockReceived = false;
 int currentStep = STEPS_PER_FRAME - 1;
 
-void onStepClockReceived() {
-    stepClockReceived = true;
-}
+void onStepClockReceived() { stepClockReceived = true; }
 
 // Put this after the code for each step. It waits for another clock signal from
 // the Pi. Upon receiving it, the next byte of data is transmitted. If your step
@@ -76,30 +103,100 @@ void endStep() {
         Serial.print(" did not finish before the next step.\n");
         stepClockReceived = false;
     } else {
-        while (!stepClockReceived) { }
+        while (!stepClockReceived) {
+        }
     }
     stepClockReceived = false;
     currentStep = (currentStep + 1) % STEPS_PER_FRAME;
 }
 
-void loop() {
-    {
-        digitalWriteFast(PIN_ADCS_CS, LOW);
-        uint16_t value0a = 0, value0b = 0, value1a = 0, value1b = 0, 
-            value2a = 0, value2b = 0, value3a = 0, value3b = 0;
-        for (int bit = 15; bit >= 0; bit--) {
-            DELAY_25NS;
-            digitalWriteFast(PIN_ADCS_SCLK, LOW);
-            
-            DELAY_25NS;
-            digitalWriteFast(PIN_ADCS_SCLK, HIGH);
-        }
+unsigned char dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
+unsigned char *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
+
+// Reads the next 16 bits of data from the ADCs. This function waits for 1 step
+// in the middle.
+void readAdcs(const int CHANNEL_OFFSET) {
+    uint8_t bitReads[16];
+    for (int bit = 15; bit >= 0; bit--) {
         DELAY_25NS;
-        digitalWriteFast(PIN_ADCS_CS, HIGH);
+        digitalWriteFast(PIN_ADCS_SCLK, LOW);
+        bitReads[bit] = (GPIO6_DR >> 16) & 0xFF;
+        DELAY_25NS;
+        digitalWriteFast(PIN_ADCS_SCLK, HIGH);
     }
+
     endStep();
-    for (int step = 0; step < STEPS_PER_FRAME - 1 + 100 * STEPS_PER_FRAME; step++) {
-        endStep();
+
+    // 0a, 0b, 1a, 1b, etc.
+    uint16_t values[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+    for (int bit = 0; bit < 16; bit++) {
+        for (int valueIndex = 0; valueIndex < 8; valueIndex++) {
+            values[valueIndex] |= ((bitReads[bit] >> valueIndex) & 0x1) << bit;
+        }
     }
+
+    wipBuffer[CHANNEL_OFFSET + 0 + 0] = values[0] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 0 + 1] = values[0] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 0 + 8] = values[1] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 0 + 9] = values[1] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 16 + 0] = values[2] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 16 + 1] = values[2] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 16 + 8] = values[3] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 16 + 9] = values[3] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 32 + 0] = values[4] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 32 + 1] = values[4] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 32 + 8] = values[5] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 32 + 9] = values[5] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 48 + 0] = values[6] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 48 + 1] = values[6] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 48 + 8] = values[7] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 48 + 9] = values[7] & 0xFF;
 }
 
+void loop() {
+    { // Read ADCs, 8 steps
+        digitalWriteFast(PIN_ADCS_CS, LOW);
+        // readAdcs() uses an endStep() in the middle of it to break up its
+        // calculations.
+        readAdcs(0);
+        endStep();
+        readAdcs(2);
+        endStep();
+        readAdcs(4);
+        endStep();
+        readAdcs(6);
+        DELAY_25NS;
+        digitalWriteFast(PIN_ADCS_CS, HIGH);
+        endStep();
+    }
+    { // Tell ADCs to read from inputs, 1 step.
+        digitalWriteFast(PIN_ADCS_RESET, HIGH);
+        digitalWriteFast(PIN_ADCS_CONVST, LOW);
+        DELAY_25NS;
+        DELAY_25NS;
+        digitalWriteFast(PIN_ADCS_RESET, LOW);
+        DELAY_25NS;
+        digitalWriteFast(PIN_ADCS_CONVST, HIGH);
+        endStep();
+    }
+    { // Debug output, 1 step.
+        Serial.println((int) wipBuffer[15]);
+        // Serial.println((GPIO6_DR >> 16) & 0xFF, 2);
+        endStep();
+    }
+    const int NUM_STEPS_USED = 10;
+    // Wait for extra steps so that once we get back to the first one the
+    // counter is correctly at zero.
+    for (int step = 0;
+         step < STEPS_PER_FRAME - NUM_STEPS_USED + 100 * STEPS_PER_FRAME;
+         step++) {
+        endStep();
+    }
+    // Swap buffers.
+    {
+        unsigned char *tmp = wipBuffer;
+        wipBuffer = completedBuffer;
+        completedBuffer = tmp;
+    }
+}
