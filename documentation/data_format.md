@@ -34,6 +34,8 @@ formats:
 
 - **unorm16**: Unsigned normalized 16-bit number, I.E. a value from 0.0 to 1.0.
   Occupies two bytes.
+- **snorm16**: Signed (two's compliment) normalized 16-bit number, I.E. a value 
+  from -1.0 to 1.0. Occupies two bytes.
 - TODO: Other formats as they become necessary.
 
 For example, a frame containing 4 `unorm16` values would be 8 bytes long and
@@ -70,10 +72,10 @@ frame.
 
 ```js
 {
-    "version": "1",         // info.json format version
-    "frame_time_us": "500", // Time per data frame, in microseconds
-    "total_num_lods": "8",  // How many different levels of detail are recorded
-    "lod_sample_interval": "4", // How much lower resolution each successive
+    "version": 1,           // info.json format version
+    "frame_time_us": 500,   // Time per data frame, in microseconds
+    "total_num_lods": 8,    // How many different levels of detail are recorded
+    "lod_sample_interval": 4,   // How much lower resolution each successive
                                 // LOD is
     "format": [             // Data frame format description
         {

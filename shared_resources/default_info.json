@@ -1,0 +1,168 @@
+{
+    "version": 1,
+    "frame_time_us": 500,
+    "total_num_lods": 8,
+    "lod_sample_interval": 4,
+    "format": [
+        {
+            "group": "ADC 1",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 8",
+            "type": "snorm16"
+        }
+    ]
+}
