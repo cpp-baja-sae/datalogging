@@ -2,6 +2,12 @@
 
 IntervalTimer testTimer;
 
+// If defined, the program will use an internal clock instead of waiting for
+// a clock on PIN_PICOM_CLOCK
+// #define USE_TEST_TIMER
+// How many milliseconds between steps (when using the test timer)
+#define TEST_TIMER_PERIOD 5
+
 // 100 bytes are transmitted every frame.
 #define STEPS_PER_FRAME 100
 
@@ -27,6 +33,20 @@ IntervalTimer testTimer;
 #define PIN_ADC3_DOUTA 17
 // MSB
 #define PIN_ADC3_DOUTB 16
+// Pins for writing data to the Raspberry Pi. These pins are selected so that 
+// every pin can be written at once from GPIO6_DR (starting at bit 24)
+// LSB
+#define PIN_PICOM_0 22
+#define PIN_PICOM_1 23
+#define PIN_PICOM_2 20
+#define PIN_PICOM_3 21
+#define PIN_PICOM_4 38
+#define PIN_PICOM_5 39
+#define PIN_PICOM_6 26
+// MSB
+#define PIN_PICOM_7 27
+// Clock from the Raspberry Pi signalling the start of the next step.
+#define PIN_PICOM_CLOCK 33
 
 // Pauses execution of the program for a single clock cycle
 #define DELAY_CLOCK_CYCLE __asm__("nop\n")
@@ -68,6 +88,15 @@ void setup() {
     setupOutputPin(PIN_ADCS_RESET, LOW);
     setupOutputPin(PIN_ADCS_CONVST, HIGH);
 
+    setupOutputPin(PIN_PICOM_0, LOW);
+    setupOutputPin(PIN_PICOM_1, LOW);
+    setupOutputPin(PIN_PICOM_2, LOW);
+    setupOutputPin(PIN_PICOM_3, LOW);
+    setupOutputPin(PIN_PICOM_4, LOW);
+    setupOutputPin(PIN_PICOM_5, LOW);
+    setupOutputPin(PIN_PICOM_6, LOW);
+    setupOutputPin(PIN_PICOM_7, LOW);
+
     pinMode(PIN_ADC0_DOUTA, INPUT_PULLUP);
     pinMode(PIN_ADC0_DOUTB, INPUT_PULLUP);
     pinMode(PIN_ADC1_DOUTA, INPUT_PULLUP);
@@ -76,12 +105,22 @@ void setup() {
     pinMode(PIN_ADC2_DOUTB, INPUT_PULLUP);
     pinMode(PIN_ADC3_DOUTA, INPUT_PULLUP);
     pinMode(PIN_ADC3_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_PICOM_CLOCK, INPUT_PULLUP);
 
     // For error messages.
     Serial.begin(115200);
     delay(2000);
 
-    testTimer.begin(onStepClockReceived, 5);
+#ifdef USE_TEST_TIMER
+    testTimer.begin(onStepClockReceived, TEST_TIMER_PERIOD);
+#else
+    attachInterrupt(
+        digitalPinToInterrupt(PIN_PICOM_CLOCK), 
+        onStepClockReceived,
+        RISING
+    );
+#endif
+
     endStep();
 }
 
@@ -107,6 +146,9 @@ void endStep() {
         }
     }
     stepClockReceived = false;
+    // Set bits 24-32 of GPIO6_DR to the byte we want to transmit.
+    GPIO6_DR = (GPIO6_DR & 0x00FFFFFF) 
+        | (((uint32_t) completedBuffer[currentStep]) << 24);
     currentStep = (currentStep + 1) % STEPS_PER_FRAME;
 }
 
@@ -181,7 +223,7 @@ void loop() {
         endStep();
     }
     { // Debug output, 1 step.
-        Serial.println((int) wipBuffer[15]);
+        // Serial.println((int) wipBuffer[15]);
         // Serial.println((GPIO6_DR >> 16) & 0xFF, 2);
         endStep();
     }
