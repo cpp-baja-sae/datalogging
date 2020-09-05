@@ -75,6 +75,7 @@ config_content = '\n'.join([
     ''
 ])
 
+
 def make_buffer_code(piece_maker):
     current_offset = 0
     output = ''
@@ -84,19 +85,25 @@ def make_buffer_code(piece_maker):
             print('ERROR: ' + data_item['type'] + ' is not a valid data type.')
             exit(1)
         data_type = data_types[data_type]
-        make_accessor = lambda base: '*((' + data_type['ctype'] + '*) ((' + base + ') + ' + str(current_offset) + '))'
+        def make_accessor(
+            base): return '*((' + data_type['ctype'] + '*) ((' + base + ') + ' + str(current_offset) + '))'
         hr_name = data_item['group'] + ' -> ' + data_item['name']
         output += piece_maker(make_accessor, data_type, hr_name) + '\n'
         current_offset += data_type['size']
     return output
 
+
 def make_reset_code(make_accessor, current_data_type, hr_name):
     return '\n'.join([
         '    // ' + hr_name,
-        '    ' + make_accessor('lod_infos[lod_index].min_buffer') + ' = ' + current_data_type['default_min'] + ';',
-        '    ' + make_accessor('lod_infos[lod_index].max_buffer') + ' = ' + current_data_type['default_max'] + ';',
-        '    ' + make_accessor('lod_infos[lod_index].avg_buffer') + ' = ' + current_data_type['default_avg'] + ';',
+        '    ' + make_accessor('lod_infos[lod_index].min_buffer') +
+        ' = ' + current_data_type['default_min'] + ';',
+        '    ' + make_accessor('lod_infos[lod_index].max_buffer') +
+        ' = ' + current_data_type['default_max'] + ';',
+        '    ' + make_accessor('lod_infos[lod_index].avg_buffer') +
+        ' = ' + current_data_type['default_avg'] + ';',
     ])
+
 
 def make_propogate_lod_code(make_accessor, current_data_type, hr_name):
     min_line = current_data_type['update_min'] \
@@ -115,6 +122,7 @@ def make_propogate_lod_code(make_accessor, current_data_type, hr_name):
         '        ' + avg_line,
     ])
 
+
 def make_update_first_lod_code(make_accessor, current_data_type, hr_name):
     min_line = current_data_type['update_min'] \
         .replace('$OLD', make_accessor('lod_infos[0].min_buffer')) \
@@ -131,6 +139,7 @@ def make_update_first_lod_code(make_accessor, current_data_type, hr_name):
         '    ' + max_line,
         '    ' + avg_line,
     ])
+
 
 data_ops_content = '\n'.join([
     '// Do not make changes to this file, it was auto-generated based on the contents',
@@ -158,20 +167,20 @@ data_ops_content = '\n'.join([
     '    }',
     '    // Write new values to the file buffer.',
     '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],', 
-    '        this_lod->min_buffer,', 
+    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
+    '        this_lod->min_buffer,',
     '        FRAME_SIZE',
     '    );',
     '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
     '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],', 
-    '        this_lod->max_buffer,', 
+    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
+    '        this_lod->max_buffer,',
     '        FRAME_SIZE',
     '    );',
     '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
     '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],', 
-    '        this_lod->avg_buffer,', 
+    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
+    '        this_lod->avg_buffer,',
     '        FRAME_SIZE',
     '    );',
     '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
