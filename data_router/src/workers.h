@@ -6,9 +6,9 @@
 #include "config.h"
 
 struct LodInfo {
-    int min_buffer[FRAME_LEN];
-    int max_buffer[FRAME_LEN];
-    int avg_buffer[FRAME_LEN];
+    char min_buffer[FRAME_SIZE];
+    char max_buffer[FRAME_SIZE];
+    char avg_buffer[FRAME_SIZE];
     // How many frames have been accumulated in the three buffers.
     int progress; 
 
