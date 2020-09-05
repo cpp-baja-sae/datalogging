@@ -183,7 +183,7 @@ int create_tx_waveform() {
 
         convst_signal[3].gpioOn  = 1 << PIN_CONVST;
         convst_signal[3].gpioOff = 0;
-        convst_signal[3].usDelay = CYCLE_TIME - 8 - read_time;
+        convst_signal[3].usDelay = FRAME_TIME - 8 - read_time;
         gpioWaveAddGeneric(4, convst_signal);
 
         // gpioPulse_t reset_signal[8];
@@ -201,13 +201,13 @@ int create_tx_waveform() {
 
         // reset_signal[3].gpioOn = 0;
         // reset_signal[3].gpioOff  = 1 << PIN_RESET;
-        // reset_signal[3].usDelay = CYCLE_TIME - 8 - read_time;
+        // reset_signal[3].usDelay = FRAME_TIME - 8 - read_time;
         // gpioWaveAddGeneric(4, reset_signal);
     
-        time_offset += CYCLE_TIME;
+        time_offset += FRAME_TIME;
     }
 
-    // These two pulses do nothing for CYCLE_TIME * ADC_FRAME_BUFFER_LEN microseconds.
+    // These two pulses do nothing for FRAME_TIME * ADC_FRAME_BUFFER_LEN microseconds.
     // This ensures that there is still a delay after the last transaction
     // before the whole waveform starts over again.
     gpioPulse_t end_padding[2];

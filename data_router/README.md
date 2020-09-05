@@ -11,8 +11,12 @@ real-time.
 
 `build.sh` compiles the program. `run.sh` executes it with sudo priviledges.
 This program requires the `pigpio` library which may need to be installed with 
-`sudo apt install libpigpio-dev`. It also requires cmake and a c compiler, which 
-can both be installed with `sudo apt install build-essential cmake`
+`sudo apt install libpigpio-dev`. It also requires python3, cmake, and a c 
+compiler, which can all be installed with 
+`sudo apt install python3 build-essential cmake`. `generate_code.py` is a script
+that is run as a part of `build.sh` which generates some code based on the
+contents of `shared_resources/default_info.json` to make it easier to adjust the
+types of sensors connected to the system.
 
 ## Workers
 

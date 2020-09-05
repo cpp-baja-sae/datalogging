@@ -42,28 +42,17 @@
 // to be busy for longer before the buffer fills up. However, there is an upper
 // limit to how big the buffer can be which is affected by a number of factors.
 #define ADC_FRAME_BUFFER_LEN 16
-// Delay in microseconds between each read operation.
-#define CYCLE_TIME 500   
 
 //==============================================================================
 // GENERAL CONSTANTS
 //==============================================================================
 
-// How many data values are contained in each frame. Used for initializing 
-// variables that keep track of mins, maxes, and averages.
-#define FRAME_LEN (ADC_DATA_LEN)
-// How many bytes each data frame occupies. FRAME_SIZE must be a factor of 
-// FILE_BLOCK_SIZE
-#define FRAME_SIZE (ADC_DATA_SIZE)
+#include "generated/config.h"
+
 // Write to the file in 4k blocks.
 #define FILE_BLOCK_SIZE 4096 
 // I don't think the buffer needs to be this big but it's not really a problem.
 #define FILE_BUFFER_SIZE (FRAME_SIZE * FILE_BLOCK_SIZE)
-// How many additional versions of the file to create with sequentially lower
-// resolutions.
-#define NUM_AUX_LODS 7 
-// How much the sample rate should be divided for each sequential file.
-#define LOD_SAMPLE_INTERVAL 4
 
 // The name of the socket to be created to allow this program to talk to other
 // programs on the pi, allowing it to be controlled from outside. This socket

@@ -13,6 +13,7 @@ add_executable(
 )
 
 target_include_directories(data_router PRIVATE src/)
+target_include_directories(data_router PRIVATE .)
 
 # Default communication library for raspi chipset, has low-level functions
 # allowing for super-fast reads / writes.
