@@ -9,9 +9,11 @@ from pathlib import Path
 data_types = {
     'unorm16': {
         'size': 2,
+        'ctype': 'uint16_t',
     },
     'snorm16': {
         'size': 2,
+        'ctype': 'int16_t',
     },
 }
 
@@ -27,30 +29,39 @@ for data_item in info['format']:
     data_type = data_types[data_type]
     total_size += data_type['size']
 
-config_content = ''
-config_content += '// Do not make changes to this file, it was auto-generated based on the contents\n'
-config_content += '// of ../shared_resources/default_info.json. You may instead change that file\n'
-config_content += '// and then run ./build.sh to update the contents of this file.\n'
-config_content += '\n'
-config_content += '#ifndef GENERATED_CONFIG_H_\n'
-config_content += '#define GENERATED_CONFIG_H_\n'
-config_content += '\n'
-config_content += '// Delay in microseconds between each frame\n'
-config_content += '#define FRAME_TIME ' + str(info['frame_time_us']) + '\n'
-config_content += '// How many data values are contained in each frame. Used for initializing \n'
-config_content += '// variables that keep track of mins, maxes, and averages.\n'
-config_content += '#define FRAME_LEN ' + str(num_items) + '\n'
-config_content += '// How many bytes each data frame occupies.\n'
-config_content += '#define FRAME_SIZE ' + str(total_size) + '\n'
-config_content += '// How many additional versions of the file to create with sequentially lower\n'
-config_content += '// resolutions.\n'
-config_content += '#define NUM_AUX_LODS ' + \
-    str(info['total_num_lods'] - 1) + '\n'
-config_content += '// How much the sample rate should be divided for each sequential file.\n'
-config_content += '#define LOD_SAMPLE_INTERVAL ' + \
-    str(info['lod_sample_interval']) + '\n'
-config_content += '\n'
-config_content += '#endif\n'
+config_content = '\n'.join([
+    '// Do not make changes to this file, it was auto-generated based on the contents',
+    '// of ../shared_resources/default_info.json. You may instead change that file',
+    '// and then run ./build.sh to update the contents of this file.',
+    '',
+    '#ifndef GENERATED_CONFIG_H_',
+    '#define GENERATED_CONFIG_H_',
+    '',
+    '// Delay in microseconds between each frame',
+    '#define FRAME_TIME ' + str(info['frame_time_us']) + '',
+    '// How many data values are contained in each frame. Used for initializing ',
+    '// variables that keep track of mins, maxes, and averages.',
+    '#define FRAME_LEN ' + str(num_items) + '',
+    '// How many bytes each data frame occupies.',
+    '#define FRAME_SIZE ' + str(total_size) + '',
+    '// How many additional versions of the file to create with sequentially lower',
+    '// resolutions.',
+    '#define NUM_AUX_LODS ' + str(info['total_num_lods'] - 1) + '',
+    '// How much the sample rate should be divided for each sequential file.',
+    '#define LOD_SAMPLE_INTERVAL ' + str(info['lod_sample_interval']) + '',
+    '',
+    '#endif',
+    ''
+])
+
+data_ops_content = '\n'.join([
+    '// Do not make changes to this file, it was auto-generated based on the contents',
+    '// of ../shared_resources/default_info.json. You may instead change that file',
+    '// and then run ./build.sh to update the contents of this file.',
+    '',
+    
+    '',
+])
 
 Path('generated').mkdir(exist_ok=True)
 config_file = open('generated/config.h', 'w')
