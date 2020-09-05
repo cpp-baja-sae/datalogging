@@ -36,6 +36,9 @@ formats:
   Occupies two bytes.
 - **snorm16**: Signed (two's compliment) normalized 16-bit number, I.E. a value 
   from -1.0 to 1.0. Occupies two bytes.
+- **dummy8**: An unused 8-bit (1 byte) value. This can be used as a placeholder.
+- **dummy64**: An unused 64-bit (8 byte) value. This can be used as a 
+  placeholder.
 - TODO: Other formats as they become necessary.
 
 For example, a frame containing 4 `unorm16` values would be 8 bytes long and

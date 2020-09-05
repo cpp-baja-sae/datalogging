@@ -1,9 +1,10 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 
 # This file generates code depending on the contents of ../shared_resources/default_info.json
 # It is automatically executed when you run ./build.sh
 
 import json
+import math
 from pathlib import Path
 
 data_types = {
@@ -30,18 +31,39 @@ data_types = {
         'size': 2,
         'ctype': 'int16_t',
         'default_min': '0x7FFF',
-        'default_max': '-0x7FFF',
+        'default_max': '-0x8000',
         'default_avg': '0',
         'update_min': '$OLD = $NEW < $OLD ? $NEW : $OLD;',
         'update_max': '$OLD = $NEW > $OLD ? $NEW : $OLD;',
         'update_avg': '$OLD += $NEW / LOD_SAMPLE_INTERVAL;',
     },
+    'dummy8': {
+        'size': 1,
+        'ctype': 'uint8_t',
+        'default_min': '0',
+        'default_max': '0',
+        'default_avg': '0',
+        'update_min': '$OLD = 0;',
+        'update_max': '$OLD = 0;',
+        'update_avg': '$OLD = 0;',
+    },
+    'dummy64': {
+        'size': 8,
+        'ctype': 'uint64_t',
+        'default_min': '0',
+        'default_max': '0',
+        'default_avg': '0',
+        'update_min': '$OLD = 0;',
+        'update_max': '$OLD = 0;',
+        'update_avg': '$OLD = 0;',
+    },
 }
 
-info = json.load(open('../shared_resources/default_info.json', 'r'))
+info_string = open('../shared_resources/default_info.json', 'r').read()
+escaped_info_string = info_string.replace('\n', '\\n').replace('"', '\\"')
+info = json.loads(info_string)
 
 total_size = 0
-num_items = len(info['format'])
 for data_item in info['format']:
     data_type = data_item['type']
     if data_type not in data_types:
@@ -49,6 +71,17 @@ for data_item in info['format']:
         exit(1)
     data_type = data_types[data_type]
     total_size += data_type['size']
+step_interval = info['frame_time_us'] / total_size
+if (step_interval % 1.0 > 0.001):
+    print(
+        'ERROR: Frame time (' 
+        + str(info['frame_time_us']) 
+        + 'us) does not evenly divide into the length of a frame (' 
+        + str(total_size) 
+        + ' bytes). This must be fixed to ensure timing is correct.'
+    )
+    exit(1)
+step_interval = int(step_interval)
 
 config_content = '\n'.join([
     '// Do not make changes to this file, it was auto-generated based on the contents',
@@ -58,13 +91,18 @@ config_content = '\n'.join([
     '#ifndef GENERATED_CONFIG_H_',
     '#define GENERATED_CONFIG_H_',
     '',
+    '#define DEFAULT_INFO_CONTENT "' + escaped_info_string + '"',
+    '#define DEFAULT_INFO_SIZE ' + str(len(info_string)),
+    '',
     '// Delay in microseconds between each frame',
     '#define FRAME_TIME ' + str(info['frame_time_us']) + '',
-    '// How many data values are contained in each frame. Used for initializing ',
-    '// variables that keep track of mins, maxes, and averages.',
-    '#define FRAME_LEN ' + str(num_items) + '',
     '// How many bytes each data frame occupies.',
     '#define FRAME_SIZE ' + str(total_size) + '',
+    # These two may be different if step_interval is an odd number.
+    '// How many microseconds the step clock should stay on for each step.',
+    '#define STEP_CLOCK_ON_TIME ' + str(math.ceil(step_interval / 2.0)),
+    '// How many microseconds the step clock should stay off for each step.',
+    '#define STEP_CLOCK_OFF_TIME ' + str(math.floor(step_interval / 2.0)),
     '// How many additional versions of the file to create with sequentially lower',
     '// resolutions.',
     '#define NUM_AUX_LODS ' + str(info['total_num_lods'] - 1) + '',

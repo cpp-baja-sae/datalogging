@@ -13,21 +13,27 @@ void interrupt_handler(int _) {
 }
 
 void initialize_gpio() {
-    gpioSetMode(PIN_CS, PI_OUTPUT);
-    gpioSetMode(PIN_SCLK, PI_OUTPUT);
-    gpioSetMode(PIN_CONVST, PI_OUTPUT);
-    gpioSetMode(PIN_RESET, PI_OUTPUT);
+    if (gpioInitialise() < 0) {
+        printf("[SENSOR] Failed to initialize GPIO! Make sure you are ");
+        printf("using sudo.\n");
+        exit(1);
+    }
 
-    gpioWrite(PIN_RESET, 0);
-    usleep(20);
-    gpioWrite(PIN_RESET, 1);
-    usleep(20);
-    gpioWrite(PIN_RESET, 0);
+    gpioSetMode(TEENSY_STEP_CLOCK_PIN, PI_OUTPUT);
+    for (int bit = 0; bit < 8; bit++) {
+        gpioSetMode(TEENSY_FIRST_DATA_PIN + bit, PI_INPUT);
+    }
+
+    // Terminate the program when ^C is received.
+    gpioSetSignalFunc(SIGINT, interrupt_handler);
+
+    printf("[SENSOR] Successfully initialized GPIO.\n");
 }
 
 void initialize() {
     // Ensure that all these values are initialized correctly without garbage
-    // values.
+    // values. LOD 0 does not need to be initialized because we just directly 
+    // copy information into it without reading anything from it.
     for (int lod = 0; lod < NUM_AUX_LODS; lod++) {
         lod_infos[lod].progress = 0;
         lod_infos[lod].fbuf_read_index = 0;
@@ -44,17 +50,7 @@ void initialize() {
     lod_infos[5].file_write_block_size = FRAME_SIZE;
     lod_infos[6].file_write_block_size = FRAME_SIZE;
 
-    if (gpioInitialise() < 0) {
-        printf("[SENSOR] Failed to initialize GPIO! Make sure you are ");
-        printf("with sudo.\n");
-        exit(1);
-    }
-
     initialize_gpio();
-
-    gpioSetSignalFunc(SIGINT, interrupt_handler);
-
-    printf("[SENSOR] Successfully initialized GPIO.\n");
 }
 
 void use_realtime_priority() {
@@ -87,7 +83,7 @@ int create_tx_waveform() {
     };
 
     int time_offset = 0;
-    for (int cycle = 0; cycle < ADC_FRAME_BUFFER_LEN; cycle++) {
+    for (int cycle = 0; cycle < GPIO_BUFFER_LEN; cycle++) {
         char data_buf[NUM_CHANNELS * 2 + 1];
         for (int i = 0; i < NUM_CHANNELS * 2; i++) {
             data_buf[i] = 0xFF;
@@ -150,7 +146,7 @@ int create_tx_waveform() {
         time_offset += FRAME_TIME;
     }
 
-    // These two pulses do nothing for FRAME_TIME * ADC_FRAME_BUFFER_LEN microseconds.
+    // These two pulses do nothing for FRAME_TIME * GPIO_BUFFER_LEN microseconds.
     // This ensures that there is still a delay after the last transaction
     // before the whole waveform starts over again.
     gpioPulse_t end_padding[2];
@@ -184,7 +180,7 @@ void sensor_read_loop() {
     // the highest is the end.
     int bottom_cb = waveform_info.botCB;
     int num_cbs = waveform_info.numCB;
-    int cbs_per_cycle = num_cbs / ADC_FRAME_BUFFER_LEN;
+    int cbs_per_cycle = num_cbs / GPIO_BUFFER_LEN;
 
     // OOLs (no idea what it stands for) store values read from pins. Each
     // OOL stores a 32-bit field containing the value of every GPIO pin at
@@ -198,11 +194,11 @@ void sensor_read_loop() {
     int reading_from = 0;
     while (continue_flag) {
         int current_cycle_in_progress 
-            = (rawWaveCB() - bottom_cb) / cbs_per_cycle % ADC_FRAME_BUFFER_LEN;
+            = (rawWaveCB() - bottom_cb) / cbs_per_cycle % GPIO_BUFFER_LEN;
 
         int cycles_read = 0;
         while (reading_from != current_cycle_in_progress) {
-            int current_ool = top_ool - reading_from * NUM_CHANNELS * 16;
+            int current_ool = top_ool - reading_from * FRAME_SIZE;
 
             for (int index = 0; index < FRAME_SIZE; index++) {
                 uint32_t pin_values = rawWaveGetOut(current_ool);
@@ -220,13 +216,13 @@ void sensor_read_loop() {
             pbuf_write_index 
                 = (pbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;
 
-            reading_from = (reading_from + 1) % ADC_FRAME_BUFFER_LEN;
+            reading_from = (reading_from + 1) % GPIO_BUFFER_LEN;
             cycles_read += 1;
         }
-        if (cycles_read > ADC_FRAME_BUFFER_LEN / 2 + ADC_FRAME_BUFFER_LEN / 4) {
+        if (cycles_read > GPIO_BUFFER_LEN / 2 + GPIO_BUFFER_LEN / 4) {
             printf(
                 "[SENSOR] WARNING: Data buffer was pretty full. (%i/%i)\n",
-                cycles_read, ADC_FRAME_BUFFER_LEN 
+                cycles_read, GPIO_BUFFER_LEN 
             );
         }
         usleep(100);

@@ -163,6 +163,46 @@
             "group": "ADC 4",
             "name": "Channel 8",
             "type": "snorm16"
+        },
+        {
+            "group": "Dummy",
+            "name": "A",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "B",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "C",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "D",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "W",
+            "type": "dummy8"
+        },
+        {
+            "group": "Dummy",
+            "name": "X",
+            "type": "dummy8"
+        },
+        {
+            "group": "Dummy",
+            "name": "Y",
+            "type": "dummy8"
+        },
+        {
+            "group": "Dummy",
+            "name": "Z",
+            "type": "dummy8"
         }
     ]
 }
