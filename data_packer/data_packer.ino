@@ -81,7 +81,7 @@ void setup() {
     Serial.begin(115200);
     delay(2000);
 
-    testTimer.begin(onStepClockReceived, 2);
+    testTimer.begin(onStepClockReceived, 5);
     endStep();
 }
 
