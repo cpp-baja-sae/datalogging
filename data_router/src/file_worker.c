@@ -25,7 +25,7 @@ void begin_data_log_file() {
     fprintf(info_file, "\n\t\"version\": %i,", 0);
     fprintf(info_file, "\n\t\"num_adcs\": %i,", NUM_ADCS);
     fprintf(info_file, "\n\t\"num_channels\": %i,", NUM_CHANNELS);
-    fprintf(info_file, "\n\t\"cycle_time_us\": %i,", CYCLE_TIME);
+    fprintf(info_file, "\n\t\"FRAME_TIME_us\": %i,", FRAME_TIME);
     // Count the primary file in the total LOD count.
     fprintf(info_file, "\n\t\"total_num_lods\": %i,", NUM_AUX_LODS + 1);
     fprintf(info_file, "\n\t\"lod_sample_interval\": %i", LOD_SAMPLE_INTERVAL);
