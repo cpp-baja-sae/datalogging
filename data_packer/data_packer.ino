@@ -13,6 +13,8 @@ IntervalTimer testTimer;
 
 // This lights up when there is an error.
 #define PIN_ONBOARD_LED 13
+// This pin goes high every time a step completes too late.
+#define PIN_ERROR 4
 
 // Chip select pin
 #define PIN_ADCS_CS 0
@@ -33,7 +35,7 @@ IntervalTimer testTimer;
 #define PIN_ADC3_DOUTA 17
 // MSB
 #define PIN_ADC3_DOUTB 16
-// Pins for writing data to the Raspberry Pi. These pins are selected so that 
+// Pins for writing data to the Raspberry Pi. These pins are selected so that
 // every pin can be written at once from GPIO6_DR (starting at bit 24)
 // LSB
 #define PIN_PICOM_0 22
@@ -87,6 +89,7 @@ void setup() {
     setupOutputPin(PIN_ADCS_SCLK, HIGH);
     setupOutputPin(PIN_ADCS_RESET, LOW);
     setupOutputPin(PIN_ADCS_CONVST, HIGH);
+    setupOutputPin(PIN_ERROR, LOW);
 
     setupOutputPin(PIN_PICOM_0, LOW);
     setupOutputPin(PIN_PICOM_1, LOW);
@@ -114,15 +117,15 @@ void setup() {
 #ifdef USE_TEST_TIMER
     testTimer.begin(onStepClockReceived, TEST_TIMER_PERIOD);
 #else
-    attachInterrupt(
-        digitalPinToInterrupt(PIN_PICOM_CLOCK), 
-        onStepClockReceived,
-        RISING
-    );
+    attachInterrupt(digitalPinToInterrupt(PIN_PICOM_CLOCK), onStepClockReceived,
+                    RISING);
 #endif
 
     endStep();
 }
+
+unsigned char dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
+unsigned char *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
 
 volatile bool stepClockReceived = false;
 int currentStep = STEPS_PER_FRAME - 1;
@@ -137,23 +140,37 @@ void endStep() {
     // it. If it's already here that means we're late.
     if (stepClockReceived) {
         digitalWriteFast(PIN_ONBOARD_LED, HIGH);
-        Serial.print("ERROR: Step ");
-        Serial.print(currentStep);
-        Serial.print(" did not finish before the next step.\n");
+        digitalWriteFast(PIN_ERROR, HIGH);
+        // Serial.print("ERROR: Step ");
+        // Serial.print(currentStep);
+        // Serial.print(" did not finish before the next step.\n");
         stepClockReceived = false;
     } else {
+        digitalWriteFast(PIN_ERROR, LOW);
         while (!stepClockReceived) {
         }
+        stepClockReceived = false;
     }
-    stepClockReceived = false;
     // Set bits 24-32 of GPIO6_DR to the byte we want to transmit.
-    GPIO6_DR = (GPIO6_DR & 0x00FFFFFF) 
-        | (((uint32_t) completedBuffer[currentStep]) << 24);
+    // Unfortunately our microcontrollers have an internalized phobia of writing
+    // multiple pins at the same time and end up causing erratic timing errors 
+    // as a coping mechanism. Instead we'll use a safer but more verbose method
+    // until we can get a qualified electropsychologist to fix the problem.
+    // Ideally the compiler will optimize all the writes into something with
+    // performance similar to the original code.
+    // GPIO6_DR = (GPIO6_DR & 0x00FFFFFF)
+    // | (((uint32_t) completedBuffer[currentStep]) << 24);
+    uint8_t valueToTransmit = currentStep;
+    digitalWriteFast(PIN_PICOM_0, valueToTransmit & 0x1 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_1, valueToTransmit & 0x2 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_2, valueToTransmit & 0x4 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_3, valueToTransmit & 0x8 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_4, valueToTransmit & 0x10 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_5, valueToTransmit & 0x20 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_6, valueToTransmit & 0x40 ? HIGH : LOW);
+    digitalWriteFast(PIN_PICOM_7, valueToTransmit & 0x80 ? HIGH : LOW);
     currentStep = (currentStep + 1) % STEPS_PER_FRAME;
 }
-
-unsigned char dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
-unsigned char *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
 
 // Reads the next 16 bits of data from the ADCs. This function waits for 1 step
 // in the middle.
@@ -223,16 +240,14 @@ void loop() {
         endStep();
     }
     { // Debug output, 1 step.
-        // Serial.println((int) wipBuffer[15]);
+        // Serial.println((int) wipBuffer[0]);
         // Serial.println((GPIO6_DR >> 16) & 0xFF, 2);
         endStep();
     }
     const int NUM_STEPS_USED = 10;
     // Wait for extra steps so that once we get back to the first one the
     // counter is correctly at zero.
-    for (int step = 0;
-         step < STEPS_PER_FRAME - NUM_STEPS_USED + 100 * STEPS_PER_FRAME;
-         step++) {
+    for (int step = 0; step < STEPS_PER_FRAME - NUM_STEPS_USED; step++) {
         endStep();
     }
     // Swap buffers.
