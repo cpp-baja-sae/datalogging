@@ -14,8 +14,9 @@
 #define TEENSY_FIRST_DATA_PIN 5
 // The pin that triggers the Teensy to output the next byte (step).
 #define TEENSY_STEP_CLOCK_PIN 24
-// Utility pin for synchronizing an oscilloscope for debugging.
-#define OSCILLOSCOPE_SYNC_PIN 18
+// This pin is raised high during the last clock cycle of each frame to ensure
+// the teensy stays in sync.
+#define TEENSY_LAST_CLOCK_PIN 23
 
 // Write to the file in 4k blocks.
 #define FILE_BLOCK_SIZE 4096 

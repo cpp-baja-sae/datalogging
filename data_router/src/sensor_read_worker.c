@@ -19,7 +19,7 @@ void initialize_gpio() {
         exit(1);
     }
 
-    gpioSetMode(OSCILLOSCOPE_SYNC_PIN, PI_OUTPUT);
+    gpioSetMode(TEENSY_LAST_CLOCK_PIN, PI_OUTPUT);
     gpioSetMode(TEENSY_STEP_CLOCK_PIN, PI_OUTPUT);
     for (int bit = 0; bit < 8; bit++) {
         gpioSetMode(TEENSY_FIRST_DATA_PIN + bit, PI_INPUT);
@@ -77,21 +77,21 @@ int create_tx_waveform() {
 
     int time_offset = 0;
     for (int cycle = 0; cycle < GPIO_BUFFER_LEN; cycle++) {
-        rawWave_t oscilloscope_signal[3];
-        oscilloscope_signal[0].gpioOn = 0;
-        oscilloscope_signal[0].gpioOff = 0;
-        oscilloscope_signal[0].usDelay = time_offset;
-        oscilloscope_signal[0].flags = 0;
-        oscilloscope_signal[1].gpioOn = 1 << OSCILLOSCOPE_SYNC_PIN;
-        oscilloscope_signal[1].gpioOff = 0;
-        oscilloscope_signal[1].usDelay 
-            = (STEP_CLOCK_ON_TIME + STEP_CLOCK_OFF_TIME) * FRAME_SIZE / 2;
-        oscilloscope_signal[1].flags = 0;
-        oscilloscope_signal[2].gpioOn = 0;
-        oscilloscope_signal[2].gpioOff = 1 << OSCILLOSCOPE_SYNC_PIN;
-        oscilloscope_signal[2].usDelay = 0;
-        oscilloscope_signal[2].flags = 0;
-        rawWaveAddGeneric(3, oscilloscope_signal);
+        rawWave_t last_clock_signal[3];
+        last_clock_signal[0].gpioOn = 0;
+        last_clock_signal[0].gpioOff = 0;
+        last_clock_signal[0].usDelay = time_offset 
+            + (STEP_CLOCK_ON_TIME + STEP_CLOCK_OFF_TIME) * (FRAME_SIZE - 1);
+        last_clock_signal[0].flags = 0;
+        last_clock_signal[1].gpioOn = 1 << TEENSY_LAST_CLOCK_PIN;
+        last_clock_signal[1].gpioOff = 0;
+        last_clock_signal[1].usDelay = STEP_CLOCK_ON_TIME;
+        last_clock_signal[1].flags = 0;
+        last_clock_signal[2].gpioOn = 0;
+        last_clock_signal[2].gpioOff = 1 << TEENSY_LAST_CLOCK_PIN;
+        last_clock_signal[2].usDelay = 0;
+        last_clock_signal[2].flags = 0;
+        rawWaveAddGeneric(3, last_clock_signal);
 
         // Read FRAME_SIZE bytes in FRAME_SIZE steps.
         rawWave_t clock_signal[3];
