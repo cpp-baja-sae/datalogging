@@ -161,9 +161,6 @@ void sensor_read_loop() {
     gpioWaveTxSend(waveform_id, PI_WAVE_MODE_REPEAT);
 
     int reading_from = 0;
-    printf("%i %i\n", waveform_info.topCB, waveform_info.botCB);
-    printf("%i %i\n", waveform_info.topOOL, waveform_info.botOOL);
-    printf("%i %i\n", waveform_info.numTOOL, waveform_info.numBOOL);
     while (continue_flag) {
         int current_cycle_in_progress 
             = (rawWaveCB() - bottom_cb) / cbs_per_cycle % GPIO_BUFFER_LEN;
@@ -179,10 +176,6 @@ void sensor_read_loop() {
                 primary_file_buffer[pbuf_write_index + index]
                     = (pin_values >> TEENSY_FIRST_DATA_PIN) & 0xFF;
                 current_ool--;
-            }
-
-            if (reading_from == 0) {
-                printf("%i\n", primary_file_buffer[pbuf_write_index]);
             }
 
             // This propogates the data we just wrote to the other LODs. Its 

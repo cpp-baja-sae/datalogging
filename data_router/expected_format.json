@@ -3,7 +3,7 @@
     "frame_time_us": 500,
     "total_num_lods": 8,
     "lod_sample_interval": 4,
-    "format": [
+    "layout": [
         {
             "group": "ADC 1",
             "name": "Channel 1",

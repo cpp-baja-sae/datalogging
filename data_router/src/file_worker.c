@@ -18,11 +18,11 @@ void begin_data_log_file() {
     sprintf(folder_name, "%s/datalog_%.20lli", OUTPUT_DIR, timestamp);
     mkdir(folder_name, 0755);
 
-    // Write basic information.
-    sprintf(file_name, "%s/info.json", folder_name);
-    FILE *info_file = fopen(file_name, "wb");
-    fprintf(info_file, DEFAULT_INFO_CONTENT);
-    fclose(info_file);
+    // Write format.
+    sprintf(file_name, "%s/format.json", folder_name);
+    FILE *format_file = fopen(file_name, "wb");
+    fprintf(format_file, DEFAULT_FORMAT_CONTENT);
+    fclose(format_file);
 
     // Open a file to write the primary info into.
     sprintf(file_name, "%s/0.bin", folder_name);
