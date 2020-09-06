@@ -10,8 +10,8 @@ frame. Each datalog is stored in its own folder named after the Unix timestamp
 of when that datalog began. Each of these folders contains several files. The 
 first file, named `0.bin` contains all the data recorded, at full resolution.
 Each successive file (`1.bin`, `2.bin`, etc.) contains the same data at
-successively lower resolutions. The file `info.json` contains information about
-the datalog, including information such as how long the datalog ran for as well
+successively lower resolutions. The file `format.json` describes how it is
+formatted, including information such as how long the datalog ran for as well
 as what sensors were connected at the time. Each of the `.bin` files is simply
 a series of *frames*, one after the other, with no seperation or additional 
 information.
@@ -30,7 +30,7 @@ bandwidth.
 Frames contain data captured during a certain time interval. At the time of
 writing this, one frame represents 1/2,000th of a second. It contains a list of
 items recorded from different sensors. Each item may be in one of a number of
-formats:
+types:
 
 - **unorm16**: Unsigned normalized 16-bit number, I.E. a value from 0.0 to 1.0.
   Occupies two bytes.
@@ -39,7 +39,7 @@ formats:
 - **dummy8**: An unused 8-bit (1 byte) value. This can be used as a placeholder.
 - **dummy64**: An unused 64-bit (8 byte) value. This can be used as a 
   placeholder.
-- TODO: Other formats as they become necessary.
+- TODO: Other types as they become necessary.
 
 For example, a frame containing 4 `unorm16` values would be 8 bytes long and
 might represent 4 channels of analog data:
@@ -48,9 +48,13 @@ might represent 4 channels of analog data:
 11223344
 ```
 
-Every frame in a datalog has the same format. The format of frames in a datalog 
-is specified in `info.json`. The format of frames sent as realtime data are 
-unspecified at the moment and are hard-coded in.
+Every frame in a datalog has the same layout. The layoutof frames in a datalog 
+is specified in `format.json`. Frames sent in real-time use the layout specified
+in `data_router/expected_format.json`. Its contents can be retrieved from 
+`data_router` by sending it a specific command. See `main.js` in the `server` 
+component for more details. The server uses the command to provide the file 
+contents at the `/api/default_format` endpoint so that the client knows what 
+format incoming data frames have.
 
 ## Lower resolution frames
 
@@ -71,16 +75,21 @@ the second, third, and so on. Finally, it contains all the average values. This
 all results in each low-resolution frame being three times the size of a regular
 frame.
 
-## info.json format
+## Developer notes
+The following code segments need to be modified when a new item type is added:
+- `frame_length_from_format()` in `server/main.js`
+- `data_types = ` in `data_router/generate_code.py`
+
+## format.json example
 
 ```js
 {
-    "version": 1,           // info.json format version
+    "version": 1,           // Format description version for backwards compatibility
     "frame_time_us": 500,   // Time per data frame, in microseconds
     "total_num_lods": 8,    // How many different levels of detail are recorded
     "lod_sample_interval": 4,   // How much lower resolution each successive
                                 // LOD is
-    "format": [             // Data frame format description
+    "layout": [             // Data frame layout description
         {
             "group": "ADC 0",      // For identification by humans
             "name": "Channel 0",   // *

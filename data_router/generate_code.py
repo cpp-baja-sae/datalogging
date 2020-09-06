@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# This file generates code depending on the contents of ../shared_resources/default_info.json
+# This file generates code depending on the contents of ../shared_resources/default_parsed_format.json
 # It is automatically executed when you run ./build.sh
 
 import json
@@ -59,23 +59,23 @@ data_types = {
     },
 }
 
-info_string = open('../shared_resources/default_info.json', 'r').read()
-escaped_info_string = info_string.replace('\n', '\\n').replace('"', '\\"')
-info = json.loads(info_string)
+format_description = open('expected_format.json', 'r').read()
+escaped_format_description = format_description.replace('\n', '\\n').replace('"', '\\"')
+parsed_format = json.loads(format_description)
 
 total_size = 0
-for data_item in info['format']:
+for data_item in parsed_format['layout']:
     data_type = data_item['type']
     if data_type not in data_types:
         print('ERROR: ' + data_item['type'] + ' is not a valid data type.')
         exit(1)
     data_type = data_types[data_type]
     total_size += data_type['size']
-step_interval = info['frame_time_us'] / total_size
+step_interval = parsed_format['frame_time_us'] / total_size
 if (step_interval % 1.0 > 0.001):
     print(
         'ERROR: Frame time (' 
-        + str(info['frame_time_us']) 
+        + str(parsed_format['frame_time_us']) 
         + 'us) does not evenly divide into the length of a frame (' 
         + str(total_size) 
         + ' bytes). This must be fixed to ensure timing is correct.'
@@ -85,17 +85,17 @@ step_interval = int(step_interval)
 
 config_content = '\n'.join([
     '// Do not make changes to this file, it was auto-generated based on the contents',
-    '// of ../shared_resources/default_info.json. You may instead change that file',
+    '// of ../shared_resources/default_parsed_format.json. You may instead change that file',
     '// and then run ./build.sh to update the contents of this file.',
     '',
     '#ifndef GENERATED_CONFIG_H_',
     '#define GENERATED_CONFIG_H_',
     '',
-    '#define DEFAULT_INFO_CONTENT "' + escaped_info_string + '"',
-    '#define DEFAULT_INFO_SIZE ' + str(len(info_string)),
+    '#define DEFAULT_FORMAT_CONTENT "' + escaped_format_description + '"',
+    '#define DEFAULT_FORMAT_SIZE ' + str(len(format_description)),
     '',
     '// Delay in microseconds between each frame',
-    '#define FRAME_TIME ' + str(info['frame_time_us']) + '',
+    '#define FRAME_TIME ' + str(parsed_format['frame_time_us']) + '',
     '// How many bytes each data frame occupies.',
     '#define FRAME_SIZE ' + str(total_size) + '',
     # These two may be different if step_interval is an odd number.
@@ -105,9 +105,9 @@ config_content = '\n'.join([
     '#define STEP_CLOCK_OFF_TIME ' + str(math.floor(step_interval / 2.0)),
     '// How many additional versions of the file to create with sequentially lower',
     '// resolutions.',
-    '#define NUM_AUX_LODS ' + str(info['total_num_lods'] - 1) + '',
+    '#define NUM_AUX_LODS ' + str(parsed_format['total_num_lods'] - 1) + '',
     '// How much the sample rate should be divided for each sequential file.',
-    '#define LOD_SAMPLE_INTERVAL ' + str(info['lod_sample_interval']) + '',
+    '#define LOD_SAMPLE_INTERVAL ' + str(parsed_format['lod_sample_interval']) + '',
     '',
     '#endif',
     ''
@@ -117,7 +117,7 @@ config_content = '\n'.join([
 def make_buffer_code(piece_maker):
     current_offset = 0
     output = ''
-    for data_item in info['format']:
+    for data_item in parsed_format['layout']:
         data_type = data_item['type']
         if data_type not in data_types:
             print('ERROR: ' + data_item['type'] + ' is not a valid data type.')
@@ -181,7 +181,7 @@ def make_update_first_lod_code(make_accessor, current_data_type, hr_name):
 
 data_ops_content = '\n'.join([
     '// Do not make changes to this file, it was auto-generated based on the contents',
-    '// of ../shared_resources/default_info.json. You may instead change that file',
+    '// of ../shared_resources/default_parsed_format.json. You may instead change that file',
     '// and then run ./build.sh to update the contents of this file.',
     '',
     '#include <stdint.h>',
@@ -233,7 +233,7 @@ data_ops_content = '\n'.join([
     '    lod_infos[0].progress += 1;',
     '    // If we have written enough samples to the first LOD...',
     '    if (lod_infos[0].progress == LOD_SAMPLE_INTERVAL) {',
-    '        // Save the information and propogate it up to higher LODs',
+    '        // Save the parsed_formatrmation and propogate it up to higher LODs',
     '        // as necessary.',
     '        commit_lod(0);',
     '    }',

@@ -13,6 +13,20 @@ const ipc = require('./ipc');
 // Must not end with a slash.
 const data_dir = '/root/datalogs';
 
+function frame_length_from_format(format) {
+    let total_size = 0;
+    const format_sizes = {
+        unorm16: 2,
+        snorm16: 2,
+        dummy8: 1,
+        dummy64: 8
+    };
+    for (let item of format.layout) {
+        total_size += format_sizes[item.type]
+    }
+    return total_size;
+}
+
 // Wrap everything in an anonymous async method so we can use await keyword.
 (async () => {
     console.log('Creating server objects...');
@@ -23,6 +37,7 @@ const data_dir = '/root/datalogs';
     console.log('Connecting to Crunch...');
     let crunch_ipc = await ipc.connect_ipc();
     let crunch_stream = await ipc.connect_stream();
+    const default_format = await crunch_ipc.send_command(ipc.COMMAND_GET_FORMAT, []);
 
     console.log('Configuring web socket server...');
     ws_server.on('connection', (connection) => {
@@ -59,31 +74,34 @@ const data_dir = '/root/datalogs';
     // This way we can use the React dev server while prototyping the UI.
     app.use(cors());
 
+    app.get('/api/default_format', async (req, res) => {
+        res.status(200).contentType('json').send(default_format);
+    });
+
     app.get('/api/datalogs', async (req, res) => {
         let datalog_folders = await fsp.readdir(data_dir);
         datalog_folders = datalog_folders.filter(item => item.indexOf('datalog_') === 0);
         const results = [];
         for (const folder of datalog_folders) {
-            let filePath = path.join(data_dir, folder, 'info.json');
+            let filePath = path.join(data_dir, folder, 'format.json');
             try {
                 let fileContents = await fsp.readFile(filePath);
-                const info = JSON.parse(fileContents);
-                const batches_per_second = (1000 * 1000) / info.cycle_time_us;
-                // 2 bytes per sample.
-                const bytes_per_second = batches_per_second * info.num_adcs * info.num_channels * 2;
+                const format = JSON.parse(fileContents);
+                const frames_per_second = (1000 * 1000) / format.frame_time_us;
+                const bytes_per_second = frame_length_from_format(format) * frames_per_second;
                 const lod0_stat = await fsp.stat(path.join(data_dir, folder, '0.bin'));
                 const duration = Math.floor(lod0_stat.size / bytes_per_second);
                 results.push({
                     date: folder.substr(8), // Skip 'datalog_'
                     duration,
-                    ...info
+                    ...format
                 });
             } catch (e) {
                 console.warn("WARNING: Data log may be corrupt at " + filePath);
             }
         }
         res.status(200).send({ list: results });
-    })
+    });
 
     app.get('/api/datalogs/:date/span', async (req, res) => {
         if (

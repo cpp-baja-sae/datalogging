@@ -10,17 +10,19 @@
 #include "config.h"
 #include "workers.h"
 
-char STATIC_INFO_CONTENT[] = DEFAULT_INFO_CONTENT;
+char STATIC_FORMAT_CONTENT[] = DEFAULT_FORMAT_CONTENT;
 
 void run_command(
     char command, 
     char *message, 
     int message_length, 
     char **response, 
-    int *response_length
+    int *response_length,
+    bool *dealloc_response
 ) {
     *response = NULL;
     *response_length = 0;
+    *dealloc_response = false;
 
     switch (command) {
     case IPC_COMMAND_STOP:
@@ -37,8 +39,8 @@ void run_command(
         break;
     case IPC_COMMAND_GET_CONFIG:
         printf("[SOCKET] Received get config command.\n");
-        *response = STATIC_INFO_CONTENT;
-        *response_length = DEFAULT_INFO_SIZE;
+        *response = &STATIC_FORMAT_CONTENT[0];
+        *response_length = DEFAULT_FORMAT_SIZE;
         break;
     case IPC_COMMAND_SET_STREAM_INTERVAL:
         printf("[SOCKET] Received change stream interval command.\n");
@@ -145,7 +147,9 @@ void *command_worker(void *args) {
             char command = message[0];
             char *response;
             int response_length;
-            run_command(command, message, ilength, &response, &response_length);
+            bool dealloc_response;
+            run_command(command, message, ilength, &response, &response_length, 
+                &dealloc_response);
 
             char sent_length[2] = {
                 (response_length >> 8) & 0xFF, 
@@ -161,11 +165,12 @@ void *command_worker(void *args) {
                     errno
                 );
                 free(message);
-                free(response);
+                if (dealloc_response) { free(response); }
+
                 break;
             }
             free(message);
-            free(response);
+            if (dealloc_response) { free(response); }
         }
         close(client_fd);
     }
