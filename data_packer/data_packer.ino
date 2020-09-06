@@ -49,6 +49,9 @@ IntervalTimer testTimer;
 #define PIN_PICOM_7 27
 // Clock from the Raspberry Pi signalling the start of the next step.
 #define PIN_PICOM_CLOCK 33
+// The Pi raises this line during the last clock signal of the frame. This is
+// used to make sure we stay in sync with what the pi is expecting.
+#define PIN_PICOM_LAST_STEP 34
 
 // Pauses execution of the program for a single clock cycle
 #define DELAY_CLOCK_CYCLE __asm__("nop\n")
@@ -121,7 +124,19 @@ void setup() {
                     RISING);
 #endif
 
+    // Wait to start receiving clock signals from the raspberry pi.
     endStep();
+    endStep();
+    endStep();
+    // Keep consuming clock signals until we reach the last clock cycle of a
+    // frame.
+    while (true) {
+        endStep();
+        if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
+            break;
+        }
+    }
+    // Now the main loop can begin and we will be in sync with the raspi.
 }
 
 unsigned char dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
@@ -160,7 +175,7 @@ void endStep() {
     // performance similar to the original code.
     // GPIO6_DR = (GPIO6_DR & 0x00FFFFFF)
     // | (((uint32_t) completedBuffer[currentStep]) << 24);
-    uint8_t valueToTransmit = currentStep;
+    uint8_t valueToTransmit = completedBuffer[currentStep];
     digitalWriteFast(PIN_PICOM_0, valueToTransmit & 0x1 ? HIGH : LOW);
     digitalWriteFast(PIN_PICOM_1, valueToTransmit & 0x2 ? HIGH : LOW);
     digitalWriteFast(PIN_PICOM_2, valueToTransmit & 0x4 ? HIGH : LOW);
@@ -249,6 +264,13 @@ void loop() {
     // counter is correctly at zero.
     for (int step = 0; step < STEPS_PER_FRAME - NUM_STEPS_USED; step++) {
         endStep();
+        // If we get this signal anytime we should immediately proceed back to
+        // the start of the main loop. Without it everything still seems to be
+        // robust and not drifting out of sync, so this is more of a just in 
+        // case a stray gamma ray hits something kind of thing.
+        if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
+            break;
+        }
     }
     // Swap buffers.
     {
