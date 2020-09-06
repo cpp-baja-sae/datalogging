@@ -85,6 +85,8 @@ void setupOutputPin(const int pinNumber, const int value) {
     digitalWriteFast(pinNumber, value);
 }
 
+int currentStep = STEPS_PER_FRAME - 1;
+
 void setup() {
     setupOutputPin(PIN_ONBOARD_LED, LOW);
 
@@ -112,10 +114,10 @@ void setup() {
     pinMode(PIN_ADC3_DOUTA, INPUT_PULLUP);
     pinMode(PIN_ADC3_DOUTB, INPUT_PULLUP);
     pinMode(PIN_PICOM_CLOCK, INPUT_PULLUP);
+    pinMode(PIN_PICOM_LAST_STEP, INPUT_PULLUP);
 
     // For error messages.
     Serial.begin(115200);
-    delay(2000);
 
 #ifdef USE_TEST_TIMER
     testTimer.begin(onStepClockReceived, TEST_TIMER_PERIOD);
@@ -133,17 +135,17 @@ void setup() {
     while (true) {
         endStep();
         if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
+            currentStep = 0;
             break;
         }
     }
     // Now the main loop can begin and we will be in sync with the raspi.
 }
 
-unsigned char dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
-unsigned char *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
+uint8_t dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
+uint8_t *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
 
 volatile bool stepClockReceived = false;
-int currentStep = STEPS_PER_FRAME - 1;
 
 void onStepClockReceived() { stepClockReceived = true; }
 
@@ -269,12 +271,13 @@ void loop() {
         // robust and not drifting out of sync, so this is more of a just in 
         // case a stray gamma ray hits something kind of thing.
         if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
+            currentStep = 0;
             break;
         }
     }
     // Swap buffers.
     {
-        unsigned char *tmp = wipBuffer;
+        uint8_t *tmp = wipBuffer;
         wipBuffer = completedBuffer;
         completedBuffer = tmp;
     }
