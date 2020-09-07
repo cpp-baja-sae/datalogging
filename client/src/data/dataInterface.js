@@ -1,4 +1,4 @@
-import { FrameBuffer } from './frame';
+import { FrameBuffer, LowResFrameBuffer } from './frame';
 import { addStreamListener, getDefaultFormat } from '../util/backend.js';
 import { BUFFER_LENGTH } from '../util/constants.js';
 
@@ -53,6 +53,119 @@ class RealtimeSource {
   _pointToBufferIndex(point) {
     if (point > 0) return (this.bufferEnd - 1) % BUFFER_LENGTH;
     return (this.bufferEnd - 1 + Math.round(point * this.sampleRate)) % BUFFER_LENGTH;
+  }
+}
+
+class DatalogSource {
+  constructor(datalogInfo) {
+    this.listeners = [];
+    this.sampleRate = (1000 * 1000) / datalogInfo.frame_time_us;
+    this.format = datalogInfo;
+    this.buffers = [{
+      buffer: new FrameBuffer(datalogInfo),
+      sampleRate: this.sampleRate,
+      startIndex: -1,
+      currentlyFetching: false,
+      queuedFetch: null
+    }];
+    let lodSampleRate = this.sampleRate;
+    for (let lod = 1; lod < datalogInfo.total_num_lods; lod++) {
+      lodSampleRate /= datalogInfo.lod_sample_interval;
+      this.buffers.push({
+        buffer: new LowResFrameBuffer(datalogInfo),
+        sampleRate: lodSampleRate,
+        startIndex: -1,
+        currentlyFetching: false,
+        queuedFetch: null
+      });
+    }
+  }
+
+  // Point is a positive number.
+  getValue(point, channel) {
+    let [lod, index] = this._pointToBufferIndex(point);
+    if (
+      index < this.buffers[lod].startIndex 
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      || index < 0
+    ) {
+      return 0;
+    } else {
+      return this.buffers[lod].buffer.getValue(index % BUFFER_LENGTH, channel);
+    }
+  }
+
+  // Point is a positive number.
+  getMin(point, channel) {
+    let [lod, index] = this._pointToBufferIndex(point);
+    if (
+      index < this.buffers[lod].startIndex 
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      || index < 0
+    ) {
+      return 0;
+    } else {
+      return this.buffers[lod].buffer.getMin(index % BUFFER_LENGTH, channel);
+    }
+  }
+
+  // Point is a positive number.
+  getMax(point, channel) {
+    let [lod, index] = this._pointToBufferIndex(point);
+    if (
+      index < this.buffers[lod].startIndex 
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      || index < 0
+    ) {
+      return 0;
+    } else {
+      return this.buffers[lod].buffer.getMax(index % BUFFER_LENGTH, channel);
+    }
+  }
+
+  addListener(callback) {
+    this.listeners.push(callback);
+  }
+
+  removeListener(callbackToRemove) {
+    this.listeners = this.listeners.filter(item => item !== callbackToRemove);
+  }
+
+  // Submits a request to retrieve data such that the start of the specified LOD
+  // is at the specified index.
+  _submitFetchRequest(lod, newStartIndex) {
+    if (newStartIndex < 0) newStartIndex = 0;
+    if (this.buffers[lod].currentlyFetching) {
+      this.buffers[lod].queuedFetch = newStartIndex;
+    } else {
+      this.buffers[lod].currentlyFetching = true;
+      (async () => {
+        this.buffers[lod].currentlyFetching = false;
+      })();
+    }
+  }
+
+  _triggerListeners() {
+    for (let listener of this.listeners) {
+      listener();
+    }
+  }
+
+  _selectLodForResolution() {
+    let samplesPerPixel = dataInterface.getTimePerPixel() * this.sampleRate;
+    let lod = 0;
+    // Pick an LOD which does not have more than 1 sample per pixel.
+    while (samplesPerPixel > 1.0) {
+      samplesPerPixel /= this.format.lod_sample_interval;
+      lod += 1;
+    }
+    return lod;
+  }
+
+  _pointToBufferIndex(time) {
+    let lod = this._selectLodForResolution();
+    let index = Math.round(time * this.buffers[lod].sampleRate);
+    return [lod, index];
   }
 }
 
@@ -190,16 +303,16 @@ class DataInterface {
   }
 }
 
-const instance = new DataInterface();
+const dataInterface = new DataInterface();
 
-export default instance;
+export default dataInterface;
 
 (async () => {
   console.error('Connecting realtime data...');
-  instance.realtimeSource = new RealtimeSource(await getDefaultFormat());
-  instance.currentSource = instance.realtimeSource;
-  instance.realtimeSource.addListener(() => {
-    if (instance.isSourceRealtime()) instance._triggerListeners();
+  dataInterface.realtimeSource = new RealtimeSource(await getDefaultFormat());
+  dataInterface.currentSource = dataInterface.realtimeSource;
+  dataInterface.realtimeSource.addListener(() => {
+    if (dataInterface.isSourceRealtime()) dataInterface._triggerListeners();
   });
   console.error('Complete!');
 })();

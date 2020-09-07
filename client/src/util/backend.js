@@ -28,11 +28,11 @@ function wsUrl(endpoint) {
   }
 }
 
-export async function readDataSpan(date, start, end) {
+export async function readDataSpan(date, start, end, lod) {
   let response = await fetch(url(`/api/datalogs/${date}/span`, {
     start: start,
     end: end,
-    lod: 0,
+    lod: lod,
   }));
   return await response.arrayBuffer();
 }
