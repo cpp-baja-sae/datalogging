@@ -1,7 +1,5 @@
 import urllib from 'url';
 
-import { NUM_CHANNELS, BATCH_SIZE, MAX_VALUE } from '../util/constants.js';
-
 const PLACEHOLDER_DATA = false;
 
 function url(endpoint, query) {
@@ -45,10 +43,7 @@ let streamListeners = [];
 // TODO: New format placeholder data.
 if (PLACEHOLDER_DATA) {
   setInterval(() => {
-    let dataFrame = [];
-    for (let c = 0; c < NUM_CHANNELS; c++) {
-      dataFrame.push([Math.random()]);
-    }
+    let dataFrame = null;
     for (let listener of streamListeners) {
       listener(dataFrame);
     }
