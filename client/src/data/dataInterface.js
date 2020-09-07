@@ -8,6 +8,7 @@ class RealtimeSource {
     this.buffer = new FrameBuffer(dataFormat);
     this.bufferEnd = 0;
     this.sampleRate = (1000 * 1000) / dataFormat.frame_time_us;
+    this.format = dataFormat;
     addStreamListener((newData) => {
       this.buffer.storeRawFrame(this.bufferEnd % BUFFER_LENGTH, newData);
       this.bufferEnd += 1;
@@ -67,6 +68,10 @@ class DataInterface {
       getValue: (_1, _2) => 0,
       getMin: (_1, _2) => 0,
       getMax: (_1, _2) => 0,
+      format: {
+        frame_time_us: 0,
+        layout: []
+      }
     };
 
     this.realtimeSource = dummySource;
@@ -83,6 +88,10 @@ class DataInterface {
 
   useRealtimeSource() {
     this.currentSource = this.realtimeSource;
+  }
+
+  getFormat() {
+    return this.currentSource.format;
   }
 
   // If `isSourceRealtime()`, then time is a negative value where 0 is the most

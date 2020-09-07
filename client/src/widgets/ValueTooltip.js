@@ -3,11 +3,19 @@ import React from 'react';
 import styles from './ValueTooltip.module.css';
 import mousePos from '../util/mousePos';
 import { LayoutConsumer } from '../state/Layout';
-import { ChannelsConsumer } from '../state/Channels';
 import { COLORS, UNIT_ABBREVIATIONS } from '../util/constants';
 import dataInterface from '../data/dataInterface';
 
 export default class ValueTooltip extends React.Component {
+  componentDidMount() {
+    this.listener = () => this.forceUpdate();
+    dataInterface.addSettingsListener(this.listener);
+  }
+
+  componentWillUnmount() {
+    dataInterface.removeSettingsListener(this.listener);
+  }
+
   constructor(props) {
     super(props);
   }
@@ -34,27 +42,26 @@ export default class ValueTooltip extends React.Component {
 
       for (let graphIndex = 0; graphIndex < this.layout.graphs.length; graphIndex++) {
         let graph = this.layout.graphs[graphIndex];
-        let channel = this.channelStore.channels[graph.channel];
+        let channelSettings = this.layout.channelSettings[graph.channel];
         let div = element.children[graphIndex];
         let time = (mousePos.x - mousePos.graphEndX) * 0.001;
         let value = dataInterface.getValue(time, graph.channel);
-        value = value * (channel.maxValue - channel.minValue) + channel.minValue;
-        let abbr = UNIT_ABBREVIATIONS[channel.units];
+        value = value * (channelSettings.maxValue - channelSettings.minValue) + channelSettings.minValue;
+        let abbr = UNIT_ABBREVIATIONS[channelSettings.units];
         div.children[2].innerText = value.toPrecision(4) + abbr;
       }
     }, 50);
   }
 
   render() {
-    return (<LayoutConsumer>{layout => (<ChannelsConsumer>{channelStore => {
+    return (<LayoutConsumer>{layout => {
       this.layout = layout;
-      this.channelStore = channelStore;
       let values = [];
       for (let graph of layout.graphs) {
-        let channel = channelStore.channels[graph.channel];
+        let channelSettings = layout.channelSettings[graph.channel];
         values.push((<div key={graph.key} className={styles.row}>
           <span className={styles.label} style={{ color: COLORS[graph.color] }}>
-            {channel.label}:
+            {channelSettings.label}:
           </span>
           <span className={styles.spacer} />
           <span className={styles.value}>0</span>
@@ -63,6 +70,6 @@ export default class ValueTooltip extends React.Component {
       return (<div className={styles.root} ref={e => this.setupTooltip(e)}>
         {values}
       </div>);
-    }}</ChannelsConsumer>)}</LayoutConsumer>);
+    }}</LayoutConsumer>);
   }
 }

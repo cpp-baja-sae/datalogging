@@ -2,12 +2,7 @@
 import React from 'react';
 
 import styles from './DataSourcePanel.module.css';
-import { ChannelsConsumer } from '../state/Channels';
 import { DatalogsConsumer } from '../state/Datalogs';
-import { NUM_ADCS, CHANNELS_PER_ADC } from '../util/constants.js';
-import ChannelSettings from './ChannelSettings';
-import Graph from './Graph';
-import { COLORS } from '../util/constants';
 import UpdateIcon from '@material-ui/icons/Update';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 

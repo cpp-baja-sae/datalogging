@@ -1,32 +1,37 @@
 import React from 'react';
 
 import styles from './ChannelPanel.module.css';
-import { ChannelsConsumer } from '../state/Channels';
-import { NUM_ADCS, CHANNELS_PER_ADC } from '../util/constants.js';
 import ChannelSettings from './ChannelSettings';
 import Graph from './Graph';
 import { COLORS } from '../util/constants';
+import dataInterface from '../data/dataInterface';
 
 export default class ChannelPanel extends React.Component {
-  render() {
-    return (<ChannelsConsumer>{channelStore => {
-      let channelCards = [];
-      for (let adc = 0; adc < NUM_ADCS; adc++) {
-        for (let adcChannel = 0; adcChannel < CHANNELS_PER_ADC; adcChannel++) {
-          let channel = adcChannel * NUM_ADCS + adc;
-          channelCards.push((<div className={styles.card} key={channel}>
-            <div className={styles.identifier}>{`ADC${adc + 1} / CHN${adcChannel + 1}`}</div>
-            <ChannelSettings index={channel} />
-            <div className={styles.graphContainer}>
-              <Graph channel={channel} color={COLORS[0]} />
-            </div>
-          </div>));
-        }
-      }
+  componentDidMount() {
+    this.listener = () => this.forceUpdate();
+    dataInterface.addSettingsListener(this.listener);
+  }
 
-      return (<div className={styles.root}>
-        {channelCards}
-      </div>);
-    }}</ChannelsConsumer>);
+  componentWillUnmount() {
+    dataInterface.removeSettingsListener(this.listener);
+  }
+
+  render() {
+    let channelCards = [];
+    let index = 0;
+    for (let channel of dataInterface.getFormat().layout) {
+      channelCards.push((<div className={styles.card} key={channel}>
+        <div className={styles.identifier}>{`${channel.group} / ${channel.name}`}</div>
+        <ChannelSettings index={index} />
+        <div className={styles.graphContainer}>
+          <Graph channel={index} color={COLORS[0]} />
+        </div>
+      </div>));
+      index++;
+    }
+
+    return (<div className={styles.root}>
+      {channelCards}
+    </div>);
   }
 }

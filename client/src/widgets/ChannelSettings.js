@@ -3,10 +3,20 @@ import React from 'react';
 import TextField from '@material-ui/core/TextField';
 
 import { UNITS, UNIT_ABBREVIATIONS } from '../util/constants';
+import { LayoutConsumer } from '../state/Layout';
 import styles from './ChannelSettings.module.css';
-import { ChannelsConsumer } from '../state/Channels';
+import dataInterface from '../data/dataInterface';
 
 class ChannelSettings extends React.Component {
+  componentDidMount() {
+    this.listener = () => this.forceUpdate();
+    dataInterface.addSettingsListener(this.listener);
+  }
+
+  componentWillUnmount() {
+    dataInterface.removeSettingsListener(this.listener);
+  }
+
   patchSettings(patch) {
     let settings = this.props.settings;
     for (let key in patch) {
@@ -88,11 +98,11 @@ class ChannelSettings extends React.Component {
   }
 
   render() {
-    return (<ChannelsConsumer>{channelStore => {
-      let settings = channelStore.channels[this.props.index];
-      let patchSettings = patch => channelStore.patchChannel(this.props.index, patch);
+    return (<LayoutConsumer>{layout => {
+      let settings = layout.channelSettings[this.props.index];
+      let patchSettings = patch => layout.patchChannel(this.props.index, patch);
       return this.renderSettings(settings, patchSettings);
-    }}</ChannelsConsumer>);
+    }}</LayoutConsumer>);
   }
 }
 

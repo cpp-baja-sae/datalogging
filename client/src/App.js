@@ -17,7 +17,6 @@ import ChannelPanel from './widgets/ChannelPanel';
 import DataSourcePanel from './widgets/DataSourcePanel';
 import Header from './widgets/Header';
 import { LayoutProvider } from './state/Layout';
-import { ChannelsProvider } from './state/Channels';
 import { DatalogsProvider } from './state/Datalogs';
 
 class App extends React.Component {
@@ -29,7 +28,7 @@ class App extends React.Component {
       }
     });
     return (
-      <ThemeProvider theme={theme}><LayoutProvider><ChannelsProvider><DatalogsProvider><Router>
+      <ThemeProvider theme={theme}><LayoutProvider><DatalogsProvider><Router>
         <Route exact path="/"><Redirect to="/graphs" /></Route>
         <div className={'App ' + styles.surface}>
           <Header />
@@ -50,7 +49,7 @@ class App extends React.Component {
           <Border />
           <div>Ruler</div>
         </div>
-      </Router></DatalogsProvider></ChannelsProvider></LayoutProvider></ThemeProvider>
+      </Router></DatalogsProvider></LayoutProvider></ThemeProvider>
     );
   }
 }

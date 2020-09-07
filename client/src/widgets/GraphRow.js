@@ -6,15 +6,24 @@ import MenuItem from '@material-ui/core/MenuItem';
 import React from 'react';
 import TextField from '@material-ui/core/TextField';
 
-import Graph from './Graph.js';
+import Graph from './Graph';
 import styles from './GraphRow.module.css';
-import { COLORS } from '../util/constants.js';
-import ChannelSettings from './ChannelSettings.js';
+import { COLORS } from '../util/constants';
+import ChannelSettings from './ChannelSettings';
 import ColorPicker from './ColorPicker';
-import { LayoutConsumer } from '../state/Layout.js';
-import { ChannelsConsumer } from '../state/Channels.js';
+import { LayoutConsumer } from '../state/Layout';
+import dataInterface from '../data/dataInterface';
 
 class GraphRow extends React.Component {
+  componentDidMount() {
+    this.listener = () => this.forceUpdate();
+    dataInterface.addSettingsListener(this.listener);
+  }
+
+  componentWillUnmount() {
+    dataInterface.removeSettingsListener(this.listener);
+  }
+
   constructor(props) {
     super(props);
 
@@ -43,11 +52,11 @@ class GraphRow extends React.Component {
     this.props.onChange(settings);
   }
 
-  renderSettings(layout, channelStore) {
+  renderSettings(layout) {
     let graphSettings = layout.graphs[this.props.index];
 
     let channelOptions = [];
-    let sortedChannels = channelStore.channels.map((value, index) => [value, index]);
+    let sortedChannels = layout.channelSettings.map((value, index) => [value, index]);
     sortedChannels.sort((a, b) => a[0].label.localeCompare(b[0].label));
     for (let channel of sortedChannels) {
       channelOptions.push((
@@ -89,9 +98,9 @@ class GraphRow extends React.Component {
     </div>);
   }
 
-  renderInfo(layout, channelStore) {
+  renderInfo(layout) {
     let graphSettings = layout.graphs[this.props.index];
-    let channelSettings = channelStore.channels[graphSettings.channel];
+    let channelSettings = layout.channelSettings[graphSettings.channel];
     return (<div className={styles.info}>
       <div className={styles.header}>
         <div className={styles.displayName}>{channelSettings.label}</div>
@@ -105,12 +114,12 @@ class GraphRow extends React.Component {
   render() {
     let expandedClass = this.state.expanded ? ` ${styles.expanded}` : '';
 
-    return (<LayoutConsumer>{layout => (<ChannelsConsumer>{channelStore => {
+    return (<LayoutConsumer>{layout => {
       let graphSettings = layout.graphs[this.props.index];
       return (<div className={styles.root + expandedClass}>
         {this.state.expanded
-          ? this.renderSettings(layout, channelStore)
-          : this.renderInfo(layout, channelStore)}
+          ? this.renderSettings(layout)
+          : this.renderInfo(layout)}
         <Graph
           channel={graphSettings.channel}
           color={COLORS[graphSettings.color]}
@@ -118,7 +127,7 @@ class GraphRow extends React.Component {
           showBounds={true}
         />
       </div>);
-    }}</ChannelsConsumer>)}</LayoutConsumer>);
+    }}</LayoutConsumer>);
   }
 }
 
