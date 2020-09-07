@@ -9,22 +9,22 @@ import ZoomOutIcon from '@material-ui/icons/Remove';
 import CodeIcon from '@material-ui/icons/Code';
 import EditIcon from '@material-ui/icons/Edit';
 
-import dataSourceInterface from '../data/dataSourceInterface';
+import dataInterface from '../data/dataInterface';
 
 import styles from './Header.module.css';
 
 class Header extends React.Component {
   componentDidMount() {
     this.listener = () => this.forceUpdate();
-    dataSourceInterface.addSettingsListener(this.listener);
+    dataInterface.addSettingsListener(this.listener);
   }
 
   componentWillUnmount() {
-    dataSourceInterface.removeSettingsListener(this.listener);
+    dataInterface.removeSettingsListener(this.listener);
   }
 
   render() {
-    let zoomStrengthText = dataSourceInterface.getZoomStrengthText();
+    let zoomStrengthText = dataInterface.getZoomStrengthText();
 
     let dragTimeOnClick = event => {
       let element = event.target;
@@ -35,9 +35,9 @@ class Header extends React.Component {
         let dx = event.x - x;
         x = event.x;
         if (isNaN(dx)) return; // I don't understand how javascript works.
-        let dt = dx * dataSourceInterface.getTimePerPixel() * 4.0;
-        let newTime = dataSourceInterface.getViewPosition() + dt;
-        dataSourceInterface.setViewPosition(newTime);
+        let dt = dx * dataInterface.getTimePerPixel() * 4.0;
+        let newTime = dataInterface.getViewPosition() + dt;
+        dataInterface.setViewPosition(newTime);
       };
       element.onpointerup = event => {
         element.onpointermove = null;
@@ -101,14 +101,14 @@ class Header extends React.Component {
           <span
             className={[styles.strong, styles.c3, styles.canInteract, styles.padLeft].join(" ")}
             title="Zoom In"
-            onClick={() => dataSourceInterface.increaseZoom()}
+            onClick={() => dataInterface.increaseZoom()}
           >
             <ZoomInIcon className={styles.icon} />
           </span>
           <span
             className={[styles.strong, styles.c4, styles.canInteract, styles.padRight].join(" ")}
             title="Zoom Out"
-            onClick={() => dataSourceInterface.decreaseZoom()}
+            onClick={() => dataInterface.decreaseZoom()}
           >
             <ZoomOutIcon className={styles.icon} />
           </span>
@@ -116,7 +116,7 @@ class Header extends React.Component {
         <span>
           <span className={[styles.weak, styles.c1].join(" ")}>view position:</span>
           <span className={[styles.strong, styles.c2].join(" ")}>
-            {dataSourceInterface.getViewPositionText()}
+            {dataInterface.getViewPositionText()}
           </span>
           <span
             className={[styles.strong, styles.c3, styles.canInteract, styles.padLeft].join(" ")}

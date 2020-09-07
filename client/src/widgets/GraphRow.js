@@ -8,7 +8,7 @@ import TextField from '@material-ui/core/TextField';
 
 import Graph from './Graph.js';
 import styles from './GraphRow.module.css';
-import { NUM_ADCS, CHANNELS_PER_ADC, COLORS, NUM_CHANNELS } from '../util/constants.js';
+import { COLORS } from '../util/constants.js';
 import ChannelSettings from './ChannelSettings.js';
 import ColorPicker from './ColorPicker';
 import { LayoutConsumer } from '../state/Layout.js';
@@ -111,10 +111,10 @@ class GraphRow extends React.Component {
         {this.state.expanded
           ? this.renderSettings(layout, channelStore)
           : this.renderInfo(layout, channelStore)}
-        <Graph 
-          channel={graphSettings.channel} 
-          color={COLORS[graphSettings.color]} 
-          showCursor={true} 
+        <Graph
+          channel={graphSettings.channel}
+          color={COLORS[graphSettings.color]}
+          showCursor={true}
           showBounds={true}
         />
       </div>);
