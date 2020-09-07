@@ -10,5 +10,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+console_error_panic_hook="0.1"
 wasm-bindgen = "0.2"
 yew = "0.17"
+yew-router = "0.14"
