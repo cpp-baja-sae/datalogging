@@ -15,10 +15,13 @@ const itemParseFns = {
   },
   snorm16: (dataBuffer, itemStartIndex) => {
     let intVal = (dataBuffer[itemStartIndex] << 8) + dataBuffer[itemStartIndex + 1];
-    return (intVal / 0xFFFF) * 2.0 - 1.0;
+    if (intVal >= 0x8000) {
+      intVal -= 0x10000;
+    }
+    return (intVal / 0x7FFF);
   },
-  dummy8: (_dataBuffer, _itemStartIndex) => null,
-  dummy64: (_dataBuffer, _itemStartIndex) => null,
+  dummy8: (_dataBuffer, _itemStartIndex) => 0,
+  dummy64: (_dataBuffer, _itemStartIndex) => 0,
 };
 
 // Returns a function which accepts a data bufffer (Uint8Array) as its first
@@ -68,20 +71,21 @@ export class FrameBuffer {
   constructor(dataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
-    this.parser = makeFrameParser(dataFormat.layout);
+    this.parser = makeFrameParser(dataFormat.layout).parser;
   }
 
   storeRawFrame(index, rawFrameData) {
-    this.storage[index] = this.parser(rawFrameData);
+    let dataBuffer = new Uint8Array(rawFrameData);
+    this.storage[index] = this.parser(dataBuffer, 0);
   }
 
   // Since this buffer stores max-res frames, the "minimum" and "maximum"
   // values at any point are just the plain value at that point.
-  getMinimum(frameIndex, channelIndex) {
+  getMin(frameIndex, channelIndex) {
     return this.storage[frameIndex][channelIndex];
   }
 
-  getMaximum(frameIndex, channelIndex) {
+  getMax(frameIndex, channelIndex) {
     return this.storage[frameIndex][channelIndex];
   }
 
@@ -94,18 +98,19 @@ export class LowResFrameBuffer {
   constructor(dataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
-    this.parser = makeLowResFrameParser(dataFormat.layout);
+    this.parser = makeLowResFrameParser(dataFormat.layout).parser;
   }
 
   storeRawFrame(index, rawFrameData) {
-    this.storage[index] = this.parser(rawFrameData);
+    let dataBuffer = new Uint8Array(rawFrameData);
+    this.storage[index] = this.parser(dataBuffer, 0);
   }
 
-  getMinimum(frameIndex, channelIndex) {
+  getMin(frameIndex, channelIndex) {
     return this.storage[frameIndex][0][channelIndex];
   }
 
-  getMaximum(frameIndex, channelIndex) {
+  getMax(frameIndex, channelIndex) {
     return this.storage[frameIndex][1][channelIndex];
   }
 
