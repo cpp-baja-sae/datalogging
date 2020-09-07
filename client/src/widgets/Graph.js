@@ -1,14 +1,14 @@
 import React from 'react';
 
 import styles from './Graph.module.css';
-import dataSourceInterface from '../data/dataSourceInterface';
+import dataInterface from '../data/dataInterface';
 import mousePos from '../util/mousePos';
 
 class Graph extends React.Component {
     componentDidMount() {
         this.listener = () => this.renderData();
         this.resizeListener = () => this.forceUpdate();
-        dataSourceInterface.addListener(this.listener);
+        dataInterface.addListener(this.listener);
         window.addEventListener('resize', this.resizeListener);
     }
 
@@ -27,7 +27,7 @@ class Graph extends React.Component {
     }
 
     componentWillUnmount() {
-        dataSourceInterface.removeListener(this.listener);
+        dataInterface.removeListener(this.listener);
         window.removeEventListener('resize', this.resizeListener);
     }
 
@@ -35,8 +35,8 @@ class Graph extends React.Component {
         let channel = this.props.channel;
 
         const width = this.context.canvas.width;
-        const readStep = dataSourceInterface.getTimePerPixel();
-        const leftmostTimeIndex = -width * readStep + dataSourceInterface.getViewPosition();
+        const readStep = dataInterface.getTimePerPixel();
+        const leftmostTimeIndex = -width * readStep + dataInterface.getViewPosition();
         const height = this.context.canvas.height;
 
         this.context.clearRect(0, 0, width, height);
@@ -51,13 +51,13 @@ class Graph extends React.Component {
             readFrom = leftmostTimeIndex;
             this.context.globalAlpha = 0.2;
             this.context.beginPath();
-            this.context.moveTo(0, y(dataSourceInterface.getMin(channel, readFrom)));
+            this.context.moveTo(0, y(dataInterface.getMin(readFrom, channel)));
             for (let x = 1; x < width; x++) {
                 readFrom += readStep;
-                this.context.lineTo(x, y(dataSourceInterface.getMin(channel, readFrom)) + 1);
+                this.context.lineTo(x, y(dataInterface.getMin(readFrom, channel)) + 1);
             }
             for (let x = width - 1; x >= 0; x--) {
-                this.context.lineTo(x, y(dataSourceInterface.getMax(channel, readFrom)) - 1);
+                this.context.lineTo(x, y(dataInterface.getMax(readFrom, channel)) - 1);
                 readFrom -= readStep;
             }
             this.context.closePath();
@@ -67,12 +67,12 @@ class Graph extends React.Component {
         readFrom = leftmostTimeIndex;
         this.context.globalAlpha = 1;
         this.context.beginPath();
-        this.context.moveTo(0, y(dataSourceInterface.getValue(channel, readFrom)));
+        this.context.moveTo(0, y(dataInterface.getValue(readFrom, channel)));
         for (let x = 1; x < width; x++) {
             readFrom += readStep;
-            this.context.lineTo(x, y(dataSourceInterface.getValue(channel, readFrom)));
+            this.context.lineTo(x, y(dataInterface.getValue(readFrom, channel)));
         }
-        this.context.lineJoin='bevel';
+        this.context.lineJoin = 'bevel';
         this.context.stroke();
 
         if (!this.props.showCursor) return;
@@ -87,7 +87,7 @@ class Graph extends React.Component {
         this.context.lineTo(curx, height);
         this.context.stroke();
         let time = (curx - width) * readStep;
-        let cury = y(dataSourceInterface.getValue(channel, time));
+        let cury = y(dataInterface.getValue(time, channel));
         this.context.fillStyle = 'white';
         this.context.beginPath();
         this.context.ellipse(curx, cury, 4, 4, 0, 0, Math.PI * 2.0);

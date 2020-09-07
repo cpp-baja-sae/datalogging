@@ -1,6 +1,5 @@
 import React from "react";
 
-import { NUM_ADCS, NUM_CHANNELS, CHANNELS_PER_ADC } from '../util/constants.js';
 import { getAvailableLogs } from '../util/backend.js';
 
 const { Provider, Consumer } = React.createContext();
