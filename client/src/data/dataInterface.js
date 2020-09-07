@@ -18,15 +18,21 @@ class RealtimeSource {
   // Point is a negative number. Zero is most recent sample, negative values are from times
   // before that point.
   getValue(point, channel) {
-    return this.buffer.getValue(this._pointToBufferIndex(point), channel);
+    let index = this._pointToBufferIndex(point);
+    if (index < 0) return 0;
+    return this.buffer.getValue(index, channel);
   }
 
   getMin(point, channel) {
-    return this.buffer.getMin(this._pointToBufferIndex(point), channel);
+    let index = this._pointToBufferIndex(point);
+    if (index < 0) return 0;
+    return this.buffer.getMin(index, channel);
   }
 
   getMax(point, channel) {
-    return this.buffer.getMax(this._pointToBufferIndex(point), channel);
+    let index = this._pointToBufferIndex(point);
+    if (index < 0) return 0;
+    return this.buffer.getMax(index, channel);
   }
 
   addListener(callback) {
@@ -44,7 +50,8 @@ class RealtimeSource {
   }
 
   _pointToBufferIndex(point) {
-    return (this.bufferEnd + Math.round(point * this.sampleRate)) % BUFFER_LENGTH;
+    if (point > 0) return (this.bufferEnd - 1) % BUFFER_LENGTH;
+    return (this.bufferEnd - 1 + Math.round(point * this.sampleRate)) % BUFFER_LENGTH;
   }
 }
 
@@ -66,7 +73,7 @@ class DataInterface {
     this.currentSource = dummySource;
   }
 
-  sourceIsRealtime() {
+  isSourceRealtime() {
     return this.currentSource === this.realtimeSource;
   }
 
@@ -78,7 +85,7 @@ class DataInterface {
     this.currentSource = this.realtimeSource;
   }
 
-  // If `sourceIsRealtime()`, then time is a negative value where 0 is the most
+  // If `isSourceRealtime()`, then time is a negative value where 0 is the most
   // recent data value and anything lower than that is data received earlier. if 
   // the current source is a datalog instead, then time is a positive number
   // where 0 is the first piece of data recorded.
@@ -132,7 +139,7 @@ class DataInterface {
 
   setViewPosition(newTime) {
     this.referenceTime = newTime;
-    if (this.sourceIsRealtime()) {
+    if (this.isSourceRealtime()) {
       this.referenceTime = Math.min(0.0, this.referenceTime);
     } else {
       this.referenceTime = Math.max(0.0, this.referenceTime);
@@ -146,7 +153,7 @@ class DataInterface {
 
   getViewPositionText() {
     let abs = Math.abs(this.referenceTime)
-    return (this.sourceIsRealtime() ? 'T-' : 'T+')
+    return (this.isSourceRealtime() ? 'T-' : 'T+')
       + (abs / 3600).toFixed(0)
       + ":"
       + (abs / 60).toFixed(0).padStart(2, '0')
@@ -179,9 +186,11 @@ const instance = new DataInterface();
 export default instance;
 
 (async () => {
+  console.error('Connecting realtime data...');
   instance.realtimeSource = new RealtimeSource(await getDefaultFormat());
   instance.currentSource = instance.realtimeSource;
   instance.realtimeSource.addListener(() => {
     if (instance.isSourceRealtime()) instance._triggerListeners();
   });
+  console.error('Complete!');
 })();
