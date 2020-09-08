@@ -55,7 +55,7 @@ export default class ValueTooltip extends React.Component {
         let graph = layout.graphs[graphIndex];
         let channelSettings = layout.channelSettings[graph.channel];
         let div = element.children[graphIndex];
-        let time = (mousePos.x - mousePos.graphEndX) * 0.001;
+        let time = (mousePos.x - mousePos.graphEndX) * dataInterface.getTimePerPixel();
         let value = dataInterface.getValue(time, graph.channel);
         value = value * (channelSettings.maxValue - channelSettings.minValue) + channelSettings.minValue;
         let abbr = UNIT_ABBREVIATIONS[channelSettings.units];
