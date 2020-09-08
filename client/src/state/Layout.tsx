@@ -1,9 +1,30 @@
 import React from "react";
 
-const { Provider, Consumer } = React.createContext();
+export type GraphSettings = {
+  channel: number,
+  color: number,
+  key: string
+};
+export type ChannelSettings = {
+  label: string,
+  minValue: number,
+  maxValue: number,
+  units: string,
+};
+export type LayoutState = {
+  graphs: Array<GraphSettings>,
+  channelSettings: Array<ChannelSettings>,
+  patchChannel: (index: number, patch: Partial<ChannelSettings>) => void,
+  changeGraph: (index: number, graph: GraphSettings) => void,
+  patchGraph: (index: number, patch: Partial<GraphSettings>) => void,
+  newGraph: () => void,
+  deleteGraph: (key: string) => void,
+}
 
-export class LayoutProvider extends React.Component {
-  constructor(props) {
+const { Provider, Consumer } = React.createContext<LayoutState | undefined>(undefined);
+
+export class LayoutProvider extends React.Component<{}, LayoutState> {
+  constructor(props: Readonly<{}>) {
     super(props);
     this.state = {
       graphs: [
@@ -21,7 +42,7 @@ export class LayoutProvider extends React.Component {
       channelSettings: [],
       patchChannel: (index, patch) => this.setState(oldState => {
         for (let key in patch) {
-          oldState.channelSettings[index][key] = patch[key];
+          (oldState.channelSettings[index] as any)[key] = (patch as any)[key];
         }
         return oldState;
       }),
@@ -31,17 +52,20 @@ export class LayoutProvider extends React.Component {
       }),
       patchGraph: (index, patch) => this.setState(oldState => {
         for (let key in patch) {
-          oldState.graphs[index][key] = patch[key];
+          (oldState.graphs[index] as any)[key] = (patch as any)[key];
         }
         return oldState;
       }),
       newGraph: () => this.setState(oldState => {
-        oldState.graphs.push({ adc: 0, channel: 0, color: 0, key: '' + Math.random() });
+        oldState.graphs.push({ channel: 0, color: 0, key: '' + Math.random() });
         return oldState;
       }),
       deleteGraph: key => this.setState(oldState => {
-        oldState.graphs = oldState.graphs.filter(graph => graph.key !== key);
-        return oldState;
+        let newGraphs = oldState.graphs.filter(graph => graph.key !== key);
+        return {
+          ...oldState,
+          graphs: newGraphs
+        };
       }),
     };
     for (let i = 0; i < 32; i++) {

@@ -3,13 +3,23 @@ import React from 'react';
 import TextField from '@material-ui/core/TextField';
 
 import { UNITS, UNIT_ABBREVIATIONS } from '../util/constants';
-import { LayoutConsumer } from '../state/Layout';
+import { LayoutConsumer, ChannelSettings, LayoutState } from '../state/Layout';
 import styles from './ChannelSettings.module.css';
 import dataInterface from '../data/dataInterface';
 
-class ChannelSettings extends React.Component {
-  componentDidMount() {
+type ChannelSettingsProps = {
+  index: number,
+};
+
+class ChannelSettingsEditor extends React.Component<ChannelSettingsProps> {
+  listener: () => void;
+
+  constructor(props: Readonly<ChannelSettingsProps>) {
+    super(props);
     this.listener = () => this.forceUpdate();
+  }
+
+  componentDidMount() {
     dataInterface.addSettingsListener(this.listener);
   }
 
@@ -17,15 +27,7 @@ class ChannelSettings extends React.Component {
     dataInterface.removeSettingsListener(this.listener);
   }
 
-  patchSettings(patch) {
-    let settings = this.props.settings;
-    for (let key in patch) {
-      settings[key] = patch[key];
-    }
-    this.props.onChange(settings);
-  }
-
-  renderSettings(settings, patchSettings) {
+  renderSettings(settings: ChannelSettings, patchSettings: (patch: Partial<ChannelSettings>) => void) {
     let unitOptions = [];
     for (let unit of UNITS) {
       unitOptions.push((
@@ -33,7 +35,7 @@ class ChannelSettings extends React.Component {
       ));
     }
 
-    let setMinValue = text => {
+    let setMinValue = (text: string) => {
       let result = parseFloat(text);
       if (isNaN(result)) {
         patchSettings({});
@@ -41,7 +43,7 @@ class ChannelSettings extends React.Component {
         patchSettings({ minValue: result });
       }
     };
-    let setMaxValue = text => {
+    let setMaxValue = (text: string) => {
       let result = parseFloat(text);
       if (isNaN(result)) {
         patchSettings({});
@@ -75,7 +77,7 @@ class ChannelSettings extends React.Component {
         variant="outlined"
         defaultValue={settings.minValue}
         onKeyDown={event => {
-          if (event.key === 'Enter') setMinValue(event.target.value);
+          if (event.key === 'Enter') setMinValue((event.target as any).value);
         }}
         onBlur={event => {
           setMinValue(event.target.value);
@@ -88,7 +90,7 @@ class ChannelSettings extends React.Component {
         variant="outlined"
         defaultValue={settings.maxValue}
         onKeyDown={event => {
-          if (event.key === 'Enter') setMaxValue(event.target.value);
+          if (event.key === 'Enter') setMaxValue((event.target as any).value);
         }}
         onBlur={event => {
           setMaxValue(event.target.value);
@@ -98,12 +100,13 @@ class ChannelSettings extends React.Component {
   }
 
   render() {
-    return (<LayoutConsumer>{layout => {
+    return (<LayoutConsumer>{layoutIn => {
+      let layout = layoutIn as LayoutState;
       let settings = layout.channelSettings[this.props.index];
-      let patchSettings = patch => layout.patchChannel(this.props.index, patch);
+      let patchSettings = (patch: Partial<ChannelSettings>) => layout.patchChannel(this.props.index, patch);
       return this.renderSettings(settings, patchSettings);
     }}</LayoutConsumer>);
   }
 }
 
-export default ChannelSettings;
+export default ChannelSettingsEditor;

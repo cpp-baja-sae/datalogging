@@ -1,11 +1,15 @@
 import React from "react";
 
-import { getAvailableLogs } from '../util/backend.js';
+import { getAvailableLogs } from '../util/backend';
 
-const { Provider, Consumer } = React.createContext();
+export type DatalogsState = {
+  datalogs: Array<any>
+};
 
-export class DatalogsProvider extends React.Component {
-  constructor(props) {
+const { Provider, Consumer } = React.createContext<Readonly<DatalogsState> | undefined>(undefined);
+
+export class DatalogsProvider extends React.Component<{}, DatalogsState> {
+  constructor(props: Readonly<{}>) {
     super(props);
 
     this.state = { datalogs: [] };

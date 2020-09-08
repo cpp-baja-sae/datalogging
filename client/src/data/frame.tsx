@@ -1,27 +1,29 @@
-import { BUFFER_LENGTH } from '../util/constants.js';
+import { BUFFER_LENGTH } from '../util/constants';
+import { DataLayout, DataFormat, ParsedDataFrame, RawDataFrame, ParsedLowResDataFrame } from './types';
 
 // How many bytes each kind of item takes.
-const itemTypeSizes = {
+const itemTypeSizes: any = {
   unorm16: 2,
   snorm16: 2,
   dummy8: 2,
   dummy64: 2,
 };
 
-const itemParseFns = {
-  unorm16: (dataBuffer, itemStartIndex) => {
+type ItemParseFn = (dataBuffer: Uint8Array, itemStartIndex: number) => any;
+const itemParseFns: any = {
+  unorm16: (dataBuffer: Uint8Array, itemStartIndex: number) => {
     let intVal = (dataBuffer[itemStartIndex] << 8) + dataBuffer[itemStartIndex + 1];
     return intVal / 0xFFFF;
   },
-  snorm16: (dataBuffer, itemStartIndex) => {
+  snorm16: (dataBuffer: Uint8Array, itemStartIndex: number) => {
     let intVal = (dataBuffer[itemStartIndex] << 8) + dataBuffer[itemStartIndex + 1];
     if (intVal >= 0x8000) {
       intVal -= 0x10000;
     }
     return (intVal / 0x7FFF);
   },
-  dummy8: (_dataBuffer, _itemStartIndex) => 0,
-  dummy64: (_dataBuffer, _itemStartIndex) => 0,
+  dummy8: (_dataBuffer: Uint8Array, _itemStartIndex: number) => 0,
+  dummy64: (_dataBuffer: Uint8Array, _itemStartIndex: number) => 0,
 };
 
 // Returns a function which accepts a data bufffer (Uint8Array) as its first
@@ -29,9 +31,9 @@ const itemParseFns = {
 // second argument. Given the data format provided, it will return a list of
 // parsed elements from that frame. Also returns the length of a data frame in
 // bytes.
-function makeFrameParser(dataLayout) {
-  let parseFunctions = [];
-  let itemSizes = [];
+function makeFrameParser(dataLayout: DataLayout) {
+  let parseFunctions: Array<ItemParseFn> = [];
+  let itemSizes: Array<number> = [];
   for (let item of dataLayout) {
     if (itemParseFns[item.type] === undefined) {
       throw new Error(`There is no item type named "${item.type}".`);
@@ -39,7 +41,7 @@ function makeFrameParser(dataLayout) {
     parseFunctions.push(itemParseFns[item.type]);
     itemSizes.push(itemTypeSizes[item.type]);
   }
-  let parser = (dataBuffer, frameStartIndex) => {
+  let parser = (dataBuffer: Uint8Array, frameStartIndex: number): ParsedDataFrame => {
     let currentItemIndex = frameStartIndex;
     let parsedData = [];
     for (let index = 0; index < parseFunctions.length; index++) {
@@ -55,10 +57,10 @@ function makeFrameParser(dataLayout) {
 // Similar to makeFrameParser(), but designed to work on low res frames which 
 // include information about the minimum and maximum values during the frame.
 // The returned value is an array in the form [minimums, maximums, averages].
-function makeLowResFrameParser(dataLayout) {
+function makeLowResFrameParser(dataLayout: DataLayout) {
   let { parser, frameSize } = makeFrameParser(dataLayout);
   return {
-    parser: (dataBuffer, frameStartIndex) => [
+    parser: (dataBuffer: Uint8Array, frameStartIndex: number): ParsedLowResDataFrame => [
       parser(dataBuffer, frameStartIndex),
       parser(dataBuffer, frameStartIndex + frameSize),
       parser(dataBuffer, frameStartIndex + 2 * frameSize)
@@ -67,54 +69,69 @@ function makeLowResFrameParser(dataLayout) {
   };
 }
 
-export class FrameBuffer {
-  constructor(dataFormat) {
+export interface GenericFrameBuffer {
+  storeRawFrame: (index: number, rawFrameData: RawDataFrame) => void;
+  getMin: (frameIndex: number, channelIndex: number) => any;
+  getMax: (frameIndex: number, channelIndex: number) => any;
+  getValue: (frameIndex: number, channelIndex: number) => any;
+}
+
+export class FrameBuffer implements GenericFrameBuffer {
+  storage: Array<ParsedDataFrame>;
+  format: DataFormat;
+  parser: (dataBuffer: Uint8Array, frameStartIndex: number) => ParsedDataFrame;
+
+  constructor(dataFormat: DataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
     this.parser = makeFrameParser(dataFormat.layout).parser;
   }
 
-  storeRawFrame(index, rawFrameData) {
+  storeRawFrame(index: number, rawFrameData: RawDataFrame) {
     let dataBuffer = new Uint8Array(rawFrameData);
     this.storage[index] = this.parser(dataBuffer, 0);
   }
 
   // Since this buffer stores max-res frames, the "minimum" and "maximum"
   // values at any point are just the plain value at that point.
-  getMin(frameIndex, channelIndex) {
+  getMin(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][channelIndex];
   }
 
-  getMax(frameIndex, channelIndex) {
+  getMax(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][channelIndex];
   }
 
-  getValue(frameIndex, channelIndex) {
+  getValue(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][channelIndex];
   }
 }
 
-export class LowResFrameBuffer {
-  constructor(dataFormat) {
+export class LowResFrameBuffer implements GenericFrameBuffer {
+  storage: Array<ParsedLowResDataFrame>;
+  format: DataFormat;
+  parser: (dataBuffer: Uint8Array, frameStartIndex: number) => ParsedLowResDataFrame;
+
+  constructor(dataFormat: DataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
     this.parser = makeLowResFrameParser(dataFormat.layout).parser;
   }
 
-  storeRawFrame(index, rawFrameData) {
+  storeRawFrame(index: number, rawFrameData: RawDataFrame) {
     let dataBuffer = new Uint8Array(rawFrameData);
     this.storage[index] = this.parser(dataBuffer, 0);
   }
 
-  getMin(frameIndex, channelIndex) {
+  getMin(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][0][channelIndex];
   }
 
-  getMax(frameIndex, channelIndex) {
+  getMax(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][1][channelIndex];
   }
 
-  getValue(frameIndex, channelIndex) {
+  getValue(frameIndex: number, channelIndex: number) {
     return this.storage[frameIndex][2][channelIndex];
   }
 }

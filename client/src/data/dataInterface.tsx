@@ -1,9 +1,23 @@
-import { FrameBuffer, LowResFrameBuffer } from './frame';
-import { addStreamListener, getDefaultFormat } from '../util/backend.js';
-import { BUFFER_LENGTH } from '../util/constants.js';
+import { FrameBuffer, LowResFrameBuffer, GenericFrameBuffer } from './frame';
+import { addStreamListener, getDefaultFormat } from '../util/backend';
+import { BUFFER_LENGTH } from '../util/constants';
+import { DataFormat, DatalogInfo } from './types';
 
-class RealtimeSource {
-  constructor(dataFormat) {
+interface DataSource {
+  getValue: (point: number, channel: number) => any;
+  getMin: (point: number, channel: number) => any;
+  getMax: (point: number, channel: number) => any;
+  format: DataFormat;
+}
+
+class RealtimeSource implements DataSource {
+  listeners: Array<() => void>;
+  buffer: FrameBuffer;
+  bufferEnd: number;
+  sampleRate: number;
+  format: DataFormat;
+
+  constructor(dataFormat: DataFormat) {
     this.listeners = [];
     this.buffer = new FrameBuffer(dataFormat);
     this.bufferEnd = 0;
@@ -18,29 +32,29 @@ class RealtimeSource {
 
   // Point is a negative number. Zero is most recent sample, negative values are from times
   // before that point.
-  getValue(point, channel) {
+  getValue(point: number, channel: number) {
     let index = this._pointToBufferIndex(point);
     if (index < 0) return 0;
     return this.buffer.getValue(index, channel);
   }
 
-  getMin(point, channel) {
+  getMin(point: number, channel: number) {
     let index = this._pointToBufferIndex(point);
     if (index < 0) return 0;
     return this.buffer.getMin(index, channel);
   }
 
-  getMax(point, channel) {
+  getMax(point: number, channel: number) {
     let index = this._pointToBufferIndex(point);
     if (index < 0) return 0;
     return this.buffer.getMax(index, channel);
   }
 
-  addListener(callback) {
+  addListener(callback: () => void) {
     this.listeners.push(callback);
   }
 
-  removeListener(callbackToRemove) {
+  removeListener(callbackToRemove: () => void) {
     this.listeners = this.listeners.filter(item => item !== callbackToRemove);
   }
 
@@ -50,14 +64,27 @@ class RealtimeSource {
     }
   }
 
-  _pointToBufferIndex(point) {
+  _pointToBufferIndex(point: number) {
     if (point > 0) return (this.bufferEnd - 1) % BUFFER_LENGTH;
     return (this.bufferEnd - 1 + Math.round(point * this.sampleRate)) % BUFFER_LENGTH;
   }
 }
 
-class DatalogSource {
-  constructor(datalogInfo) {
+type DatalogFetchRequest = number;
+
+class DatalogSource implements DataSource {
+  listeners: Array<() => void>;
+  buffers: Array<{
+    buffer: GenericFrameBuffer,
+    sampleRate: number,
+    startIndex: number,
+    currentlyFetching: boolean,
+    queuedFetch: DatalogFetchRequest | null,
+  }>;
+  sampleRate: number;
+  format: DataFormat;
+
+  constructor(datalogInfo: DatalogInfo) {
     this.listeners = [];
     this.sampleRate = (1000 * 1000) / datalogInfo.frame_time_us;
     this.format = datalogInfo;
@@ -82,7 +109,7 @@ class DatalogSource {
   }
 
   // Point is a positive number.
-  getValue(point, channel) {
+  getValue(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
       index < this.buffers[lod].startIndex 
@@ -96,7 +123,7 @@ class DatalogSource {
   }
 
   // Point is a positive number.
-  getMin(point, channel) {
+  getMin(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
       index < this.buffers[lod].startIndex 
@@ -110,7 +137,7 @@ class DatalogSource {
   }
 
   // Point is a positive number.
-  getMax(point, channel) {
+  getMax(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
       index < this.buffers[lod].startIndex 
@@ -123,17 +150,17 @@ class DatalogSource {
     }
   }
 
-  addListener(callback) {
+  addListener(callback: () => void) {
     this.listeners.push(callback);
   }
 
-  removeListener(callbackToRemove) {
+  removeListener(callbackToRemove: () => void) {
     this.listeners = this.listeners.filter(item => item !== callbackToRemove);
   }
 
   // Submits a request to retrieve data such that the start of the specified LOD
   // is at the specified index.
-  _submitFetchRequest(lod, newStartIndex) {
+  _submitFetchRequest(lod: number, newStartIndex: number) {
     if (newStartIndex < 0) newStartIndex = 0;
     if (this.buffers[lod].currentlyFetching) {
       this.buffers[lod].queuedFetch = newStartIndex;
@@ -162,7 +189,7 @@ class DatalogSource {
     return lod;
   }
 
-  _pointToBufferIndex(time) {
+  _pointToBufferIndex(time: number) {
     let lod = this._selectLodForResolution();
     let index = Math.round(time * this.buffers[lod].sampleRate);
     return [lod, index];
@@ -170,6 +197,13 @@ class DatalogSource {
 }
 
 class DataInterface {
+  listeners: Array<() => void>;
+  settingsListeners: Array<() => void>;
+  zoomMagnitude: number;
+  referenceTime: number;
+  realtimeSource: DataSource;
+  currentSource: DataSource;
+
   constructor() {
     this.listeners = [];
     this.settingsListeners = [];
@@ -177,12 +211,15 @@ class DataInterface {
     this.referenceTime = 0.0;
 
     // This is used until the *actual* realtime source is loaded.
-    const dummySource = {
+    const dummySource: DataSource = {
       getValue: (_1, _2) => 0,
       getMin: (_1, _2) => 0,
       getMax: (_1, _2) => 0,
       format: {
+        version: 1,
         frame_time_us: 0,
+        total_num_lods: 0,
+        lod_sample_interval: 4,
         layout: []
       }
     };
@@ -195,7 +232,7 @@ class DataInterface {
     return this.currentSource === this.realtimeSource;
   }
 
-  useDatalogSource(datalogInfo) {
+  useDatalogSource(datalogInfo: DatalogInfo) {
     throw 'Not Yet Implemented';
   }
 
@@ -211,23 +248,23 @@ class DataInterface {
   // recent data value and anything lower than that is data received earlier. if 
   // the current source is a datalog instead, then time is a positive number
   // where 0 is the first piece of data recorded.
-  getValue(time, channel) {
+  getValue(time: number, channel: number) {
     return this.currentSource.getValue(time, channel);
   }
 
-  getMin(time, channel) {
+  getMin(time: number, channel: number) {
     return this.currentSource.getMin(time, channel);
   }
 
-  getMax(time, channel) {
+  getMax(time: number, channel: number) {
     return this.currentSource.getMax(time, channel);
   }
 
-  addListener(callback) {
+  addListener(callback: () => void) {
     this.listeners.push(callback);
   }
 
-  removeListener(callbackToRemove) {
+  removeListener(callbackToRemove: () => void) {
     this.listeners = this.listeners.filter(item => item !== callbackToRemove);
   }
 
@@ -259,7 +296,7 @@ class DataInterface {
     }
   }
 
-  setViewPosition(newTime) {
+  setViewPosition(newTime: number) {
     this.referenceTime = newTime;
     if (this.isSourceRealtime()) {
       this.referenceTime = Math.min(0.0, this.referenceTime);
@@ -287,11 +324,11 @@ class DataInterface {
     return 0.005 / this.getZoomStrength();
   }
 
-  addSettingsListener(callback) {
+  addSettingsListener(callback: () => void) {
     this.settingsListeners.push(callback);
   }
 
-  removeSettingsListener(callbackToRemove) {
+  removeSettingsListener(callbackToRemove: () => void) {
     this.settingsListeners = this.settingsListeners.filter(item => item !== callbackToRemove);
   }
 
@@ -309,9 +346,10 @@ export default dataInterface;
 
 (async () => {
   console.error('Connecting realtime data...');
-  dataInterface.realtimeSource = new RealtimeSource(await getDefaultFormat());
+  let realtimeSource = new RealtimeSource(await getDefaultFormat());
+  dataInterface.realtimeSource  = realtimeSource;
   dataInterface.currentSource = dataInterface.realtimeSource;
-  dataInterface.realtimeSource.addListener(() => {
+  realtimeSource.addListener(() => {
     if (dataInterface.isSourceRealtime()) dataInterface._triggerListeners();
   });
   console.error('Complete!');

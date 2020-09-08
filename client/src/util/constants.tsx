@@ -4,7 +4,7 @@ export const UNITS = [
   'Volts',
   'Degrees',
 ];
-export const UNIT_ABBREVIATIONS = {
+export const UNIT_ABBREVIATIONS: any = {
   'Volts': 'V',
   'Degrees': '\u00B0',
 }

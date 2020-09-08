@@ -3,7 +3,12 @@ import React from 'react';
 import styles from './ColorPicker.module.css';
 import { COLORS } from '../util/constants';
 
-export default class ColorPicker extends React.Component {
+type ColorPickerProps = {
+  value: number,
+  onChange: (value: number) => void,
+};
+
+export default class ColorPicker extends React.Component<ColorPickerProps> {
   render() {
     let swatches = [];
     for (let index = 0; index < COLORS.length; index++) {

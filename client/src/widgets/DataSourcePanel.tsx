@@ -2,13 +2,14 @@
 import React from 'react';
 
 import styles from './DataSourcePanel.module.css';
-import { DatalogsConsumer } from '../state/Datalogs';
+import { DatalogsConsumer, DatalogsState } from '../state/Datalogs';
 import UpdateIcon from '@material-ui/icons/Update';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 
 export default class DataSourcePanel extends React.Component {
   render() {
-    return (<DatalogsConsumer>{datalogsStore => {
+    return (<DatalogsConsumer>{datalogsStoreIn => {
+      let datalogsStore = datalogsStoreIn as DatalogsState;
       let children = [(<div className={styles.card}>
         <span><UpdateIcon /></span>
         <span className={styles.filename}>Now</span>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { PointerEvent } from 'react';
 import Button from '@material-ui/core/Button/Button';
 import { Link } from 'react-router-dom';
 import FolderIcon from '@material-ui/icons/Folder';
@@ -14,8 +14,14 @@ import dataInterface from '../data/dataInterface';
 import styles from './Header.module.css';
 
 class Header extends React.Component {
-  componentDidMount() {
+  listener: () => void;
+
+  constructor(props: Readonly<{}>) {
+    super(props);
     this.listener = () => this.forceUpdate();
+  }
+
+  componentDidMount() {
     dataInterface.addSettingsListener(this.listener);
   }
 
@@ -26,13 +32,13 @@ class Header extends React.Component {
   render() {
     let zoomStrengthText = dataInterface.getZoomStrengthText();
 
-    let dragTimeOnClick = event => {
-      let element = event.target;
+    let dragTimeOnClick = (event: PointerEvent<HTMLSpanElement>) => {
+      let element = event.target as HTMLElement;
       element.setPointerCapture(event.pointerId);
       element.style.cursor = "col-resize";
-      let x = event.x;
+      let x = event.clientX;
       element.onpointermove = event => {
-        let dx = event.x - x;
+        let dx = event.clientX - x;
         x = event.x;
         if (isNaN(dx)) return; // I don't understand how javascript works.
         let dt = dx * dataInterface.getTimePerPixel() * 4.0;
@@ -42,7 +48,7 @@ class Header extends React.Component {
       element.onpointerup = event => {
         element.onpointermove = null;
         element.releasePointerCapture(event.pointerId);
-        element.style.cursor = undefined;
+        element.style.cursor = '';
       };
     };
 

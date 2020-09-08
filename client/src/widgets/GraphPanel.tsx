@@ -3,16 +3,17 @@ import Button from '@material-ui/core/Button';
 
 import styles from './GraphPanel.module.css';
 
-import GraphRow from './GraphRow.js';
-import { LayoutConsumer } from '../state/Layout';
+import GraphRow from './GraphRow';
+import { LayoutConsumer, LayoutState } from '../state/Layout';
 import ValueTooltip from './ValueTooltip';
 
 class GraphPanel extends React.Component {
   render() {
     return (<div className={styles.root}>
-      <LayoutConsumer>{layout => {
+      <LayoutConsumer>{layoutIn => {
+        let layout = layoutIn as LayoutState;
         let graphWidgets = [];
-        for (let index in layout.graphs) {
+        for (let index = 0; index < layout.graphs.length; index++) {
           let key = layout.graphs[index].key;
           graphWidgets.push(
             <GraphRow key={key} index={index} />

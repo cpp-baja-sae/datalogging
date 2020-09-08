@@ -9,31 +9,36 @@ import TextField from '@material-ui/core/TextField';
 import Graph from './Graph';
 import styles from './GraphRow.module.css';
 import { COLORS } from '../util/constants';
-import ChannelSettings from './ChannelSettings';
+import ChannelSettingsEditor from './ChannelSettings';
 import ColorPicker from './ColorPicker';
-import { LayoutConsumer } from '../state/Layout';
+import { LayoutConsumer, LayoutState, GraphSettings } from '../state/Layout';
 import dataInterface from '../data/dataInterface';
 
-class GraphRow extends React.Component {
-  componentDidMount() {
+type GraphRowProps = {
+  index: number,
+};
+type GraphRowState = {
+  expanded: boolean
+};
+
+class GraphRow extends React.Component<GraphRowProps, GraphRowState> {
+  listener: () => void;
+
+  constructor(props: Readonly<GraphRowProps>) {
+    super(props);
     this.listener = () => this.forceUpdate();
+
+    this.state = {
+      expanded: false,
+    };
+  }
+
+  componentDidMount() {
     dataInterface.addSettingsListener(this.listener);
   }
 
   componentWillUnmount() {
     dataInterface.removeSettingsListener(this.listener);
-  }
-
-  constructor(props) {
-    super(props);
-
-    window.expand = () => {
-      this.setState({ expanded: true });
-    }
-
-    this.state = {
-      expanded: false,
-    };
   }
 
   toggleExpanded() {
@@ -44,26 +49,18 @@ class GraphRow extends React.Component {
     });
   }
 
-  patchSettings(patch) {
-    let settings = this.props.settings;
-    for (let key in patch) {
-      settings[key] = patch[key];
-    }
-    this.props.onChange(settings);
-  }
-
-  renderSettings(layout) {
+  renderSettings(layout: LayoutState) {
     let graphSettings = layout.graphs[this.props.index];
 
     let channelOptions = [];
-    let sortedChannels = layout.channelSettings.map((value, index) => [value, index]);
-    sortedChannels.sort((a, b) => a[0].label.localeCompare(b[0].label));
+    let sortedChannels = layout.channelSettings.map((value, index) => { return { value, index }; });
+    sortedChannels.sort((a, b) => a.value.label.localeCompare(b.value.label));
     for (let channel of sortedChannels) {
       channelOptions.push((
-        <MenuItem key={'' + channel[1]} value={'' + channel[1]}>{channel[0].label}</MenuItem>
+        <MenuItem key={'' + channel.index} value={'' + channel.index}>{channel.value.label}</MenuItem>
       ));
     }
-    let patchGraph = patch => layout.patchGraph(this.props.index, patch);
+    let patchGraph = (patch: Partial<GraphSettings>) => layout.patchGraph(this.props.index, patch);
 
     return (<div className={styles.settings}>
       <div className={styles.header}>
@@ -94,11 +91,11 @@ class GraphRow extends React.Component {
       </form>
       <ColorPicker value={graphSettings.color} onChange={color => patchGraph({ color: color })} />
       <div className={styles.divider}>Channel Settings</div>
-      <ChannelSettings index={graphSettings.channel} />
+      <ChannelSettingsEditor index={graphSettings.channel} />
     </div>);
   }
 
-  renderInfo(layout) {
+  renderInfo(layout: LayoutState) {
     let graphSettings = layout.graphs[this.props.index];
     let channelSettings = layout.channelSettings[graphSettings.channel];
     return (<div className={styles.info}>
@@ -114,7 +111,8 @@ class GraphRow extends React.Component {
   render() {
     let expandedClass = this.state.expanded ? ` ${styles.expanded}` : '';
 
-    return (<LayoutConsumer>{layout => {
+    return (<LayoutConsumer>{layoutIn => {
+      let layout = layoutIn as LayoutState;
       let graphSettings = layout.graphs[this.props.index];
       return (<div className={styles.root + expandedClass}>
         {this.state.expanded

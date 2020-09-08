@@ -1,8 +1,10 @@
 import urllib from 'url';
+import { ParsedUrlQueryInput } from 'querystring';
+import { RawDataFrame } from '../data/types';
 
 const PLACEHOLDER_DATA = false;
 
-function url(endpoint, query) {
+function url(endpoint: string, query?: ParsedUrlQueryInput) {
   let queryString = '';
   if (query) {
     queryString = urllib.format({ query: query });
@@ -17,7 +19,7 @@ function url(endpoint, query) {
   }
 }
 
-function wsUrl(endpoint) {
+function wsUrl(endpoint: string) {
   if (process.env.NODE_ENV === 'development') {
     // If we are running the React dev server, then the API endpoints are 
     // technically hosted on another server.
@@ -28,7 +30,7 @@ function wsUrl(endpoint) {
   }
 }
 
-export async function readDataSpan(date, start, end, lod) {
+export async function readDataSpan(date: number, start: number, end: number, lod: number) {
   let response = await fetch(url(`/api/datalogs/${date}/span`, {
     start: start,
     end: end,
@@ -37,20 +39,19 @@ export async function readDataSpan(date, start, end, lod) {
   return await response.arrayBuffer();
 }
 
-let streamConnection = null;
-let streamListeners = [];
+let streamConnection: WebSocket | null = null;
+let streamListeners: Array<(frame: RawDataFrame) => void> = [];
 
 // TODO: New format placeholder data.
 if (PLACEHOLDER_DATA) {
   setInterval(() => {
-    let dataFrame = null;
     for (let listener of streamListeners) {
-      listener(dataFrame);
+      // listener(dataFrame);
     }
   }, 100);
 }
 
-export async function addStreamListener(listener) {
+export async function addStreamListener(listener: (frame: RawDataFrame) => void) {
   if (streamConnection || PLACEHOLDER_DATA) {
     streamListeners.push(listener);
     return;

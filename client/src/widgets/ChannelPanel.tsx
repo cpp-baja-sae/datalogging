@@ -1,14 +1,20 @@
 import React from 'react';
 
 import styles from './ChannelPanel.module.css';
-import ChannelSettings from './ChannelSettings';
+import ChannelSettingsEditor from './ChannelSettings';
 import Graph from './Graph';
 import { COLORS } from '../util/constants';
 import dataInterface from '../data/dataInterface';
 
 export default class ChannelPanel extends React.Component {
-  componentDidMount() {
+  listener: () => void;
+
+  constructor(props: Readonly<{}>) {
+    super(props);
     this.listener = () => this.forceUpdate();
+  }
+
+  componentDidMount() {
     dataInterface.addSettingsListener(this.listener);
   }
 
@@ -20,9 +26,9 @@ export default class ChannelPanel extends React.Component {
     let channelCards = [];
     let index = 0;
     for (let channel of dataInterface.getFormat().layout) {
-      channelCards.push((<div className={styles.card} key={channel}>
+      channelCards.push((<div className={styles.card} key={index.toString()}>
         <div className={styles.identifier}>{`${channel.group} / ${channel.name}`}</div>
-        <ChannelSettings index={index} />
+        <ChannelSettingsEditor index={index} />
         <div className={styles.graphContainer}>
           <Graph channel={index} color={COLORS[0]} />
         </div>
