@@ -79,7 +79,8 @@ function frame_length_from_format(format) {
     app.use(cors());
     app.use(express.json());
 
-    app.get('/api/default_format', async (req, res) => {
+    // Only a get for this one because it's set in stone.
+    app.get('/api/settings/default_format', async (req, res) => {
         res.status(200).contentType('json').send(default_format);
     });
 
