@@ -88,5 +88,7 @@ module.exports = {
     COMMAND_STOP: 'x'.charCodeAt(0),
     COMMAND_BEGIN_FILE: 'b'.charCodeAt(0),
     COMMAND_END_FILE: 'e'.charCodeAt(0),
-    COMMAND_GET_FORMAT: 'c'.charCodeAt(0)
+    COMMAND_GET_FORMAT: 'c'.charCodeAt(0),
+    COMMAND_GET_STREAM_LOD: 'L'.charCodeAt(0),
+    COMMAND_SET_STREAM_LOD: 'l'.charCodeAt(0),
 };

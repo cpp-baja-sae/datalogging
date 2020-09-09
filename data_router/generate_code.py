@@ -209,19 +209,17 @@ data_ops_content = '\n'.join([
     '        this_lod->min_buffer,',
     '        FRAME_SIZE',
     '    );',
-    '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
     '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
+    '        &this_lod->file_buffer[this_lod->fbuf_write_index + FRAME_SIZE],',
     '        this_lod->max_buffer,',
     '        FRAME_SIZE',
     '    );',
-    '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
     '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
+    '        &this_lod->file_buffer[this_lod->fbuf_write_index + 2 * FRAME_SIZE],',
     '        this_lod->avg_buffer,',
     '        FRAME_SIZE',
     '    );',
-    '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + FRAME_SIZE) % FILE_BUFFER_SIZE;'
+    '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + 3 * FRAME_SIZE) % FILE_BUFFER_SIZE;',
     '    // Reset the buffer to a state where new values can be written to it.',
     '    reset_lod_buffer(lod_index);',
     '}',

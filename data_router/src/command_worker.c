@@ -42,11 +42,18 @@ void run_command(
         *response = &STATIC_FORMAT_CONTENT[0];
         *response_length = DEFAULT_FORMAT_SIZE;
         break;
-    case IPC_COMMAND_SET_STREAM_INTERVAL:
-        printf("[SOCKET] Received change stream interval command.\n");
-        // 1 byte for command, 2 bytes for value to change to.
-        if (message_length == 3) {
-            stream_frame_interval = message[1] << 8 | message[2];
+    case IPC_COMMAND_GET_STREAM_LOD:
+        printf("[SOCKET] Received get stream lod command.\n");
+        *response = (char*) malloc(1);
+        **response = 10;
+        *response_length = 1;
+        *dealloc_response = true;
+        break;
+    case IPC_COMMAND_SET_STREAM_LOD:
+        printf("[SOCKET] Received change stream lod command.\n");
+        // 1 byte for command, 1 byte for value to change to.
+        if (message_length == 2) {
+            stream_lod = message[1];
         } else {
             printf(
                 "[SOCKET] Error, message length must be 3 for this command.\n"

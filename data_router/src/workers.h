@@ -24,8 +24,8 @@ struct LodInfo {
 
 extern volatile int continue_flag;
 extern volatile int write_to_file_flag;
-// Only stream every (var)th frame.
-extern volatile int stream_frame_interval;
+// Stream frames from this particular LOD.
+extern volatile int stream_lod;
 
 extern volatile int pbuf_write_index;
 extern volatile char primary_file_buffer[FILE_BUFFER_SIZE];
