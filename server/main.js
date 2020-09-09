@@ -59,7 +59,6 @@ function frame_length_from_format(format) {
     }, 10000);
 
     ipc_stream.on('data', (data) => {
-        console.log(data.length);
         if (ws_server.clients.size === 0) {
             // Don't bother if no one's connected.
             // TODO: If everyone is disconnected, lower the sample rate?
