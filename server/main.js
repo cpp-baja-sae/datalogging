@@ -287,7 +287,6 @@ function frame_length_from_format(format) {
             !req.query.start
             || !req.query.end
             || !req.query.lod
-            || !req.query.channels
         ) {
             res.status(400).send({
                 status: 'error',
@@ -297,6 +296,10 @@ function frame_length_from_format(format) {
             });
             return;
         }
+        if (!req.query.channels) {
+            return 0;
+        }
+
         let channels = req.query.channels;
         if (typeof channels !== typeof []) {
             channels = [channels];
