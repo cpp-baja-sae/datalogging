@@ -157,11 +157,12 @@ function frame_length_from_format(format) {
             return;
         }
 
-        let info = await fsp.readFile(folder + '/info.json');
-        info = JSON.parse(info);
-        let bytes_per_batch = info.num_adcs * info.num_channels * 2;
-        let start = parseInt(req.query.start) * bytes_per_batch;
-        let end = parseInt(req.query.end) * bytes_per_batch;
+        let format = await fsp.readFile(folder + '/format.json');
+        format = JSON.parse(format);
+        let bytes_per_frame = frame_length_from_format(format);
+        if (req.query.lod > 0) bytes_per_frame *= 3;
+        let start = parseInt(req.query.start) * bytes_per_frame;
+        let end = parseInt(req.query.end) * bytes_per_frame;
         let data_path = folder + '/' + req.query.lod + '.bin';
         let segment_stream = fs.createReadStream(data_path, {
             start: start,
