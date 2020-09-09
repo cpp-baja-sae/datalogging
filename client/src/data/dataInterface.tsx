@@ -1,5 +1,5 @@
 import { FrameBuffer, LowResFrameBuffer, GenericFrameBuffer } from './frame';
-import { addStreamListener, getDefaultFormat, getStreamLod, setStreamLod } from '../util/backend';
+import { addStreamListener, settings } from '../util/backend';
 import { BUFFER_LENGTH } from '../util/constants';
 import { DataFormat, DatalogInfo } from './types';
 
@@ -35,6 +35,9 @@ class RealtimeSource implements DataSource {
       this.buffer.storeRawFrame(this.bufferEnd % BUFFER_LENGTH, newData);
       this.bufferEnd += 1;
       this._triggerListeners();
+    });
+    settings.stream_lod.subscribe((newLod) => {
+      this.changeLod(newLod);
     });
   }
 
@@ -370,8 +373,8 @@ export default dataInterface;
 
 (async () => {
   console.error('Connecting realtime data...');
-  let format = await getDefaultFormat();
-  let lod = await getStreamLod();
+  let format = await settings.default_format.getOnce();
+  let lod = await settings.stream_lod.getOnce();
   let realtimeSource = new RealtimeSource(format, lod);
   dataInterface.realtimeSource = realtimeSource;
   dataInterface.currentSource = dataInterface.realtimeSource;

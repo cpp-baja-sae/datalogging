@@ -2,7 +2,7 @@ import React from 'react';
 
 import styles from './SettingsPanel.module.css';
 import { DataFormat } from '../data/types';
-import { getDefaultFormat, getStreamLod, setStreamLod } from '../util/backend';
+import { settings } from '../util/backend';
 import { TextField, MenuItem } from '@material-ui/core';
 import { frameSizeFromFormat } from '../data/frame';
 import { formatMetricValue } from '../util/misc';
@@ -14,6 +14,8 @@ type SettingsPanelState = {
 };
 
 export default class SettingsPanel extends React.Component<{}, SettingsPanelState> {
+  streamLodListener: (streamLod: number) => void;
+
   constructor(props: Readonly<{}>) {
     super(props);
     this.state = {
@@ -21,14 +23,24 @@ export default class SettingsPanel extends React.Component<{}, SettingsPanelStat
       currentLod: 0,
       loading: true,
     };
+    this.streamLodListener = (streamLod) => this.setState({
+      ...this.state,
+      currentLod: streamLod,
+      loading: false,
+    })
   }
 
   componentDidMount() {
     (async () => {
-      let format = await getDefaultFormat();
-      let currentLod = await getStreamLod();
-      this.setState({ format, currentLod, loading: false });
+      settings.stream_lod.subscribe(this.streamLodListener);
+      let format = await settings.default_format.getOnce();
+      let lod = await settings.stream_lod.getOnce();
+      this.setState({ format, currentLod: lod, loading: false });
     })();
+  }
+
+  componentWillUnmount() {
+    settings.stream_lod.unsubscribe(this.streamLodListener);
   }
 
   render() {
@@ -53,9 +65,8 @@ export default class SettingsPanel extends React.Component<{}, SettingsPanelStat
         onChange={event => {
           let value = parseInt(event.target.value);
           (async () => {
-            this.setState({ ...this.state, loading: true});
-            await setStreamLod(value);
-            this.setState({ ...this.state, currentLod: value, loading: false });
+            this.setState({ ...this.state, loading: true });
+            await settings.stream_lod.set(value);
           })();
         }}
         className={styles.dropdown}
