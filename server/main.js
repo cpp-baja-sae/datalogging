@@ -81,7 +81,7 @@ function frame_length_from_format(format) {
 
     // Only a get for this one because it's set in stone.
     app.get('/api/settings/default_format', async (req, res) => {
-        res.status(200).contentType('json').send(default_format);
+        res.status(200).contentType('json').send({ default_format: default_format });
     });
 
     // The LOD that is being streamed to the client.
