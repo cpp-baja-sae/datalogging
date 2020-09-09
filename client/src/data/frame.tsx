@@ -69,6 +69,17 @@ function makeLowResFrameParser(dataLayout: DataLayout) {
   };
 }
 
+export function frameSizeFromFormat(format: DataFormat): number {
+  let size = 0;
+  for (let item of format.layout) {
+    if (itemParseFns[item.type] === undefined) {
+      throw new Error(`There is no item type named "${item.type}".`);
+    }
+    size += itemTypeSizes[item.type];
+  }
+  return size;
+}
+
 export interface GenericFrameBuffer {
   storeRawFrame: (index: number, rawFrameData: RawDataFrame) => void;
   getMin: (frameIndex: number, channelIndex: number) => any;

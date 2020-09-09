@@ -15,6 +15,7 @@ import Border from './widgets/Border';
 import GraphPanel from './widgets/GraphPanel';
 import ChannelPanel from './widgets/ChannelPanel';
 import DataSourcePanel from './widgets/DataSourcePanel';
+import SettingsPanel from './widgets/SettingsPanel';
 import Header from './widgets/Header';
 import { LayoutProvider } from './state/Layout';
 import { DatalogsProvider } from './state/Datalogs';
@@ -44,10 +45,11 @@ class App extends React.Component {
               <Route path="/pickDataSource">
                 <DataSourcePanel />
               </Route>
+              <Route path="/settings">
+                <SettingsPanel />
+              </Route>
             </Switch>
           </div>
-          <Border />
-          <div>Ruler</div>
         </div>
       </Router></DatalogsProvider></LayoutProvider></ThemeProvider>
     );
