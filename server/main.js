@@ -37,7 +37,8 @@ function frame_length_from_format(format) {
     console.log('Connecting to Crunch...');
     let command_ipc = await ipc.connect_ipc();
     let ipc_stream = await ipc.connect_stream();
-    const default_format = await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, []);
+    const default_format 
+        = JSON.parse((await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, [])).toString('utf-8'));
     // const frame_size = frame_length_from_format(default_format);
 
     console.log('Configuring web socket server...');
