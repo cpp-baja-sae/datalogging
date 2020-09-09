@@ -13,16 +13,32 @@ const ipc = require('./ipc');
 // Must not end with a slash.
 const data_dir = '/root/datalogs';
 
+const FORMAT_SIZES = {
+    unorm16: 2,
+    snorm16: 2,
+    dummy8: 1,
+    dummy64: 8
+};
+
+// How many characters it takes to represent each data type in an exported CSV file.
+const FORMAT_CSV_SIZES = {
+    unorm16: 6,
+    snorm16: 7,
+    dummy8: 1,
+    dummy64: 1
+};
+
+const FORMAT_PARSERS = {
+    unorm16: (buffer, offset) => (buffer.readUInt16LE(offset) / 0xFFFF).toFixed(4),
+    snorm16: (buffer, offset) => (buffer.readInt16LE(offset) / 0x7FFF).toFixed(4),
+    dummy8: (_buffer, _offset) => '0',
+    dummy64: (_buffer, _offset) => '0',
+};
+
 function frame_length_from_format(format) {
     let total_size = 0;
-    const format_sizes = {
-        unorm16: 2,
-        snorm16: 2,
-        dummy8: 1,
-        dummy64: 8
-    };
     for (let item of format.layout) {
-        total_size += format_sizes[item.type]
+        total_size += FORMAT_SIZES[item.type]
     }
     return total_size;
 }
@@ -128,6 +144,35 @@ function frame_length_from_format(format) {
         res.status(200).send({ list: results });
     });
 
+    async function open_segment_stream(req, res) {
+        let folder = 'datalog_' + ('' + req.params.date).padStart(20, '0');
+        folder = data_dir + '/' + folder;
+        try {
+            await fsp.stat(folder);
+        } catch {
+            res.status(404).send({
+                status: 'error',
+                error: 'file_not_found',
+                description: 'Could not find a datalog file with the date '
+                    + req.params.date
+            });
+            return [null, null];
+        }
+
+        let format = await fsp.readFile(folder + '/format.json');
+        format = JSON.parse(format);
+        let bytes_per_frame = frame_length_from_format(format);
+        if (req.query.lod > 0) bytes_per_frame *= 3;
+        let start = parseInt(req.query.start) * bytes_per_frame;
+        let end = parseInt(req.query.end) * bytes_per_frame;
+        let data_path = folder + '/' + req.query.lod + '.bin';
+        let stream = fs.createReadStream(data_path, {
+            start: start,
+            end: end,
+        });
+        return [format, stream];
+    }
+
     app.get('/api/datalogs/:date/span', async (req, res) => {
         if (
             !req.query.start
@@ -143,31 +188,8 @@ function frame_length_from_format(format) {
             return;
         }
 
-        let folder = 'datalog_' + ('' + req.params.date).padStart(20, '0');
-        folder = data_dir + '/' + folder;
-        try {
-            await fsp.stat(folder);
-        } catch {
-            res.status(404).send({
-                status: 'error',
-                error: 'file_not_found',
-                description: 'Could not find a datalog file with the date '
-                    + req.params.date
-            });
-            return;
-        }
-
-        let format = await fsp.readFile(folder + '/format.json');
-        format = JSON.parse(format);
-        let bytes_per_frame = frame_length_from_format(format);
-        if (req.query.lod > 0) bytes_per_frame *= 3;
-        let start = parseInt(req.query.start) * bytes_per_frame;
-        let end = parseInt(req.query.end) * bytes_per_frame;
-        let data_path = folder + '/' + req.query.lod + '.bin';
-        let segment_stream = fs.createReadStream(data_path, {
-            start: start,
-            end: end,
-        });
+        let [_format, segment_stream] = await open_segment_stream(req, res);
+        if (!segment_stream) return;
 
         res.status(200);
         // Arbitrary binary data.
@@ -177,6 +199,124 @@ function frame_length_from_format(format) {
         segment_stream.on('end', () => {
             res.end();
         });
+    });
+
+    app.get('/api/datalogs/:date/csv', async (req, res) => {
+        if (
+            !req.query.start
+            || !req.query.end
+            || !req.query.lod
+            || !req.query.channels
+        ) {
+            res.status(400).send({
+                status: 'error',
+                error: 'query',
+                description: 'Request must contain query parameters start, '
+                    + 'end, lod, and channels.'
+            });
+            return;
+        }
+        let channels = req.query.channels;
+        if (typeof channels !== typeof []) {
+            channels = [channels];
+        }
+        channels = channels.map(x => parseInt(x));
+
+        let [format, segment_stream] = await open_segment_stream(req, res);
+        if (!segment_stream) return;
+
+        res.status(200).contentType('text/csv');
+
+        let header = '';
+        if (req.query.lod === '0') {
+            for (let channel of channels) {
+                header += format.layout[channel].group + '/' + format.layout[channel].name + ',';
+            }
+        } else {
+            for (let type of [' [min]', ' [max]', ' [avg]']) {
+                for (let channel of channels) {
+                    header += format.layout[channel].group + '/' + format.layout[channel].name + type + ',';
+                }
+            }
+        }
+        res.write(header + '\n');
+
+        let currentChannelIndex = 0;
+        let currentSubframe = 0;
+        let totalSubframes = req.query.lod == 0 ? 1 : 3;
+        let line = '';
+        let leftover_bytes = null;
+        segment_stream.on('data', (chunk) => {
+            if (leftover_bytes !== null) {
+                chunk = Buffer.concat([leftover_bytes, chunk]);
+            }
+            let readPointer = 0;
+            let type = format.layout[currentChannelIndex].type;
+            let size = FORMAT_SIZES[type];
+            while (readPointer + size <= chunk.length) {
+                if (channels.includes(currentChannelIndex)) {
+                    line += FORMAT_PARSERS[type](chunk, readPointer) + ',';
+                }
+                readPointer += size;
+                currentChannelIndex += 1;
+                if (currentChannelIndex === format.layout.length) {
+                    currentChannelIndex = 0;
+                    currentSubframe += 1;
+                    if (currentSubframe === totalSubframes) {
+                        currentSubframe = 0;
+                        res.write(line + '\n');
+                        line = '';
+                    }
+                }
+                type = format.layout[currentChannelIndex].type;
+                size = FORMAT_SIZES[type];
+            }
+            if (readPointer !== chunk.length) {
+                leftover_bytes = chunk.slice(readPointer);
+            } else {
+                leftover_bytes = null;
+            }
+        });
+        segment_stream.on('end', () => {
+            res.end();
+        });
+    });
+
+    async function estimate_csv_size(req, res) {
+        if (
+            !req.query.start
+            || !req.query.end
+            || !req.query.lod
+            || !req.query.channels
+        ) {
+            res.status(400).send({
+                status: 'error',
+                error: 'query',
+                description: 'Request must contain query parameters start, '
+                    + 'end, lod, and channels.'
+            });
+            return;
+        }
+        let channels = req.query.channels;
+        if (typeof channels !== typeof []) {
+            channels = [channels];
+        }
+        channels = channels.map(x => parseInt(x));
+
+        let [format, segment_stream] = await open_segment_stream(req, res);
+        if (!format) return;
+        // Close the file since we don't need it.
+        segment_stream.destroy();
+        let line_length = channels.length + 1; // Commas and newline.
+        for (let channel of channels) {
+            line_length += FORMAT_CSV_SIZES[format.layout[channel].type];
+        }
+        if (req.query.lod > 0) line_length *= 3;
+        return line_length * (req.query.end - req.query.start);
+    }
+
+    app.get('/api/datalogs/:date/csv_estimate', async (req, res) => {
+        res.status(200).send({ estimate: await estimate_csv_size(req, res) });
     });
 
     // Serve user interface from /ui/*.
