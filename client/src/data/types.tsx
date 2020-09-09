@@ -13,7 +13,7 @@ export type DataFormat = {
     layout: DataLayout,
 }
 export type DatalogInfo = DataFormat & {
-    date: number,
+    date: string,
     jsdate: Date,
-    length: number,
+    duration: number,
 }

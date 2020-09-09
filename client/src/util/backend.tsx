@@ -72,7 +72,7 @@ export async function disconnectStream() {
 
 // API Endpoints
 
-export async function readDataSpan(date: number, start: number, end: number, lod: number) {
+export async function readDataSpan(date: string, start: number, end: number, lod: number) {
   let response = await fetch(url(`/api/datalogs/${date}/span`, {
     start: start,
     end: end,

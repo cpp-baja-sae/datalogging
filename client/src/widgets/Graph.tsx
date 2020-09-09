@@ -50,7 +50,10 @@ class Graph extends React.Component<GraphProps> {
 
     const width = this.context.canvas.width;
     const readStep = dataInterface.getTimePerPixel();
-    const leftmostTimeIndex = -width * readStep + dataInterface.getViewPosition();
+    const leftmostTimeIndex = 
+      dataInterface.isSourceRealtime() 
+      ? -width * readStep + dataInterface.getViewPosition() 
+      : dataInterface.getViewPosition();
     const height = this.context.canvas.height;
 
     this.context.clearRect(0, 0, width, height);

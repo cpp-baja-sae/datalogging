@@ -1,4 +1,4 @@
-export const BUFFER_LENGTH = 4096;
+export const BUFFER_LENGTH = 8192;
 
 export const UNITS = [
   'Volts',
