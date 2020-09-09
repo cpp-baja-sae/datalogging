@@ -19,6 +19,7 @@ import SettingsPanel from './widgets/SettingsPanel';
 import Header from './widgets/Header';
 import { LayoutProvider } from './state/Layout';
 import { DatalogsProvider } from './state/Datalogs';
+import CsvExportPanel from './widgets/CsvExportPanel';
 
 class App extends React.Component {
 
@@ -47,6 +48,9 @@ class App extends React.Component {
               </Route>
               <Route path="/settings">
                 <SettingsPanel />
+              </Route>
+              <Route path="/export_csv">
+                <CsvExportPanel />
               </Route>
             </Switch>
           </div>

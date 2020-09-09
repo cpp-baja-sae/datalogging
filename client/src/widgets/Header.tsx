@@ -107,6 +107,11 @@ class Header extends React.Component {
             SETTINGS
                 </span>
         </Link>
+        <Link to="/export_csv" title="Go To CSV Exporter">
+          <span className={[styles.link, styles.c1, styles.canInteract].join(" ")}>
+            EXPORT CSV
+                </span>
+        </Link>
         <span>
           <span className={[styles.weak, styles.c1].join(" ")}>zoom:</span>
           <span className={[styles.strong, styles.c2, styles.zoomVal].join(" ")}>{zoomStrengthText}</span>

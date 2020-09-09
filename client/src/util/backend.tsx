@@ -81,6 +81,26 @@ export async function readDataSpan(date: string, start: number, end: number, lod
   return await response.arrayBuffer();
 }
 
+export async function estimateCsvSize(date: string, start: number, end: number, lod: number, channels: Array<number>): Promise<number> {
+  let response = await fetch(url(`/api/datalogs/${date}/csv_estimate`, {
+    start,
+    end,
+    lod,
+    channels,
+  }));
+  return (await response.json()).estimate;
+}
+
+// Returns a URL that the user can open to download a CSV of the specified data.
+export function getCsvLink(date: string, start: number, end: number, lod: number, channels: Array<number>) {
+  return url(`/api/datalogs/${date}/csv`, {
+    start,
+    end,
+    lod,
+    channels,
+  });
+}
+
 export async function getAvailableLogs() {
   let response = await fetch(url(`/api/datalogs`, {}));
   return await response.json();
