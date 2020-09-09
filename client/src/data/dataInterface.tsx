@@ -17,10 +17,12 @@ class RealtimeSource implements DataSource {
   sampleRate: number;
   format: DataFormat;
   lod: number;
+  scale: number; // Based on lod.
 
   constructor(dataFormat: DataFormat, lod: number) {
     this.listeners = [];
     this.lod = lod;
+    this.scale = Math.pow(dataFormat.lod_sample_interval, this.lod);
     this.bufferEnd = 0;
     this.sampleRate = (1000 * 1000) / dataFormat.frame_time_us;
     this.format = dataFormat;
@@ -39,6 +41,7 @@ class RealtimeSource implements DataSource {
   changeLod(lod: number) {
     if (lod === this.lod) return;
     this.lod = lod;
+    this.scale = Math.pow(this.format.lod_sample_interval, this.lod);
     this._makeBuffers();
   }
 
@@ -87,7 +90,7 @@ class RealtimeSource implements DataSource {
 
   _pointToBufferIndex(point: number) {
     if (point > 0) return (this.bufferEnd - 1) % BUFFER_LENGTH;
-    return (this.bufferEnd - 1 + Math.round(point * this.sampleRate)) % BUFFER_LENGTH;
+    return (this.bufferEnd - 1 + Math.round(point * this.sampleRate / this.scale)) % BUFFER_LENGTH;
   }
 }
 
