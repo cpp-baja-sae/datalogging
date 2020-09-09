@@ -1,13 +1,16 @@
 import { FrameBuffer, LowResFrameBuffer, GenericFrameBuffer } from './frame';
-import { addStreamListener, getDefaultFormat, getStreamLod, setStreamLod } from '../util/backend';
+import { addStreamListener, settings, readDataSpan } from '../util/backend';
 import { BUFFER_LENGTH } from '../util/constants';
 import { DataFormat, DatalogInfo } from './types';
+import { formatDate } from '../util/misc';
 
 interface DataSource {
   getValue: (point: number, channel: number) => any;
   getMin: (point: number, channel: number) => any;
   getMax: (point: number, channel: number) => any;
+  onWindowChange: (newZoom: number, newBaseTime: number) => void;
   format: DataFormat;
+  description: string;
 }
 
 class RealtimeSource implements DataSource {
@@ -18,6 +21,7 @@ class RealtimeSource implements DataSource {
   format: DataFormat;
   lod: number;
   scale: number; // Based on lod.
+  description = 'REALTIME';
 
   constructor(dataFormat: DataFormat, lod: number) {
     this.listeners = [];
@@ -35,6 +39,9 @@ class RealtimeSource implements DataSource {
       this.buffer.storeRawFrame(this.bufferEnd % BUFFER_LENGTH, newData);
       this.bufferEnd += 1;
       this._triggerListeners();
+    });
+    settings.stream_lod.subscribe((newLod) => {
+      this.changeLod(newLod);
     });
   }
 
@@ -74,6 +81,8 @@ class RealtimeSource implements DataSource {
     return this.buffer.getMax(index, channel);
   }
 
+  onWindowChange(_newZoom: number, _newBaseTime: number) { }
+
   addListener(callback: () => void) {
     this.listeners.push(callback);
   }
@@ -102,20 +111,24 @@ class DatalogSource implements DataSource {
     buffer: GenericFrameBuffer,
     sampleRate: number,
     startIndex: number,
+    futureStartIndex: number,
     currentlyFetching: boolean,
     queuedFetch: DatalogFetchRequest | null,
   }>;
   sampleRate: number;
-  format: DataFormat;
+  format: DatalogInfo;
+  description: string;
 
   constructor(datalogInfo: DatalogInfo) {
     this.listeners = [];
     this.sampleRate = (1000 * 1000) / datalogInfo.frame_time_us;
     this.format = datalogInfo;
+    this.description = formatDate(datalogInfo.jsdate);
     this.buffers = [{
       buffer: new FrameBuffer(datalogInfo),
       sampleRate: this.sampleRate,
       startIndex: -1,
+      futureStartIndex: -1,
       currentlyFetching: false,
       queuedFetch: null
     }];
@@ -126,9 +139,13 @@ class DatalogSource implements DataSource {
         buffer: new LowResFrameBuffer(datalogInfo),
         sampleRate: lodSampleRate,
         startIndex: -1,
+        futureStartIndex: -1,
         currentlyFetching: false,
         queuedFetch: null
       });
+    }
+    for (let lod = 0; lod < datalogInfo.total_num_lods; lod++) {
+      this._submitFetchRequest(lod, 0);
     }
   }
 
@@ -139,6 +156,7 @@ class DatalogSource implements DataSource {
       index < this.buffers[lod].startIndex
       || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
+      || this.buffers[lod].startIndex === -1 // Nothing has been retrieved yet.
     ) {
       return 0;
     } else {
@@ -153,6 +171,7 @@ class DatalogSource implements DataSource {
       index < this.buffers[lod].startIndex
       || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
+      || this.buffers[lod].startIndex === -1 // Nothing has been retrieved yet.
     ) {
       return 0;
     } else {
@@ -167,6 +186,7 @@ class DatalogSource implements DataSource {
       index < this.buffers[lod].startIndex
       || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
+      || this.buffers[lod].startIndex === -1 // Nothing has been retrieved yet.
     ) {
       return 0;
     } else {
@@ -182,16 +202,49 @@ class DatalogSource implements DataSource {
     this.listeners = this.listeners.filter(item => item !== callbackToRemove);
   }
 
+  onWindowChange(_newZoom: number, newBaseTime: number) {
+    let [newLod, index] = this._pointToBufferIndex(newBaseTime);
+    let newBaseIndex = index - BUFFER_LENGTH / 4;
+    if (Math.abs(this.buffers[newLod].futureStartIndex - newBaseIndex) > BUFFER_LENGTH / 4) {
+      this._submitFetchRequest(newLod, newBaseIndex);
+    }
+  }
+
   // Submits a request to retrieve data such that the start of the specified LOD
   // is at the specified index.
   _submitFetchRequest(lod: number, newStartIndex: number) {
     if (newStartIndex < 0) newStartIndex = 0;
+    this.buffers[lod].futureStartIndex = newStartIndex;
     if (this.buffers[lod].currentlyFetching) {
       this.buffers[lod].queuedFetch = newStartIndex;
     } else {
       this.buffers[lod].currentlyFetching = true;
       (async () => {
+        let data = await readDataSpan(
+          this.format.date,
+          newStartIndex,
+          newStartIndex + BUFFER_LENGTH,
+          lod
+        );
+        let buffer = this.buffers[lod].buffer;
+        // The efficiency of this can and should be improved. We don't always
+        // need to retrieve an entire buffer's worth of data, sometimes we
+        // already have a portion of it.
+        for (let i = 0; i < BUFFER_LENGTH; i++) {
+          buffer.storeRawFrame(
+            (i + newStartIndex) % BUFFER_LENGTH,
+            data,
+            i * buffer.frameLength
+          );
+        }
+        this.buffers[lod].startIndex = newStartIndex;
+        this._triggerListeners();
+        let queuedFetch = this.buffers[lod].queuedFetch;
         this.buffers[lod].currentlyFetching = false;
+        if (queuedFetch !== null) {
+          this.buffers[lod].queuedFetch = null;
+          this._submitFetchRequest(lod, queuedFetch);
+        }
       })();
     }
   }
@@ -209,6 +262,7 @@ class DatalogSource implements DataSource {
     while (samplesPerPixel > 1.0) {
       samplesPerPixel /= this.format.lod_sample_interval;
       lod += 1;
+      if (lod === this.format.total_num_lods) return lod - 1;
     }
     return lod;
   }
@@ -239,13 +293,15 @@ class DataInterface {
       getValue: (_1, _2) => 0,
       getMin: (_1, _2) => 0,
       getMax: (_1, _2) => 0,
+      onWindowChange: (_1, _2_) => 0,
       format: {
         version: 1,
         frame_time_us: 0,
         total_num_lods: 0,
         lod_sample_interval: 4,
         layout: []
-      }
+      },
+      description: 'LOADING...'
     };
 
     this.realtimeSource = dummySource;
@@ -257,15 +313,25 @@ class DataInterface {
   }
 
   useDatalogSource(datalogInfo: DatalogInfo) {
-    throw 'Not Yet Implemented';
+    let datalogSource = new DatalogSource(datalogInfo);
+    datalogSource.addListener(() => this._triggerListeners());
+    this.currentSource = datalogSource;
+    this.referenceTime = 0.0;
+    this._triggerSettingsListeners();
   }
 
   useRealtimeSource() {
     this.currentSource = this.realtimeSource;
+    this.referenceTime = 0.0;
+    this._triggerSettingsListeners();
   }
 
   getFormat() {
     return this.currentSource.format;
+  }
+
+  getSourceDescription() {
+    return this.currentSource.description;
   }
 
   // If `isSourceRealtime()`, then time is a negative value where 0 is the most
@@ -345,7 +411,7 @@ class DataInterface {
   }
 
   getTimePerPixel() {
-    return 0.005 / this.getZoomStrength();
+    return 0.04 / this.getZoomStrength();
   }
 
   addSettingsListener(callback: () => void) {
@@ -358,6 +424,7 @@ class DataInterface {
 
   _triggerSettingsListeners() {
     this._triggerListeners();
+    this.currentSource.onWindowChange(this.getZoomStrength(), this.referenceTime);
     for (let listener of this.settingsListeners) {
       listener();
     }
@@ -370,11 +437,12 @@ export default dataInterface;
 
 (async () => {
   console.error('Connecting realtime data...');
-  let format = await getDefaultFormat();
-  let lod = await getStreamLod();
+  let format = await settings.default_format.getOnce();
+  let lod = await settings.stream_lod.getOnce();
   let realtimeSource = new RealtimeSource(format, lod);
   dataInterface.realtimeSource = realtimeSource;
   dataInterface.currentSource = dataInterface.realtimeSource;
+  dataInterface._triggerSettingsListeners();
   realtimeSource.addListener(() => {
     if (dataInterface.isSourceRealtime()) dataInterface._triggerListeners();
   });

@@ -81,7 +81,8 @@ export function frameSizeFromFormat(format: DataFormat): number {
 }
 
 export interface GenericFrameBuffer {
-  storeRawFrame: (index: number, rawFrameData: RawDataFrame) => void;
+  frameLength: number;
+  storeRawFrame: (index: number, rawFrameData: RawDataFrame, offset?: number) => void;
   getMin: (frameIndex: number, channelIndex: number) => any;
   getMax: (frameIndex: number, channelIndex: number) => any;
   getValue: (frameIndex: number, channelIndex: number) => any;
@@ -91,16 +92,19 @@ export class FrameBuffer implements GenericFrameBuffer {
   storage: Array<ParsedDataFrame>;
   format: DataFormat;
   parser: (dataBuffer: Uint8Array, frameStartIndex: number) => ParsedDataFrame;
+  frameLength: number;
 
   constructor(dataFormat: DataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
-    this.parser = makeFrameParser(dataFormat.layout).parser;
+    let parseInfo = makeFrameParser(dataFormat.layout);
+    this.parser = parseInfo.parser;
+    this.frameLength = parseInfo.frameSize;
   }
 
-  storeRawFrame(index: number, rawFrameData: RawDataFrame) {
+  storeRawFrame(index: number, rawFrameData: RawDataFrame, offset?: number) {
     let dataBuffer = new Uint8Array(rawFrameData);
-    this.storage[index] = this.parser(dataBuffer, 0);
+    this.storage[index] = this.parser(dataBuffer, offset || 0);
   }
 
   // Since this buffer stores max-res frames, the "minimum" and "maximum"
@@ -122,16 +126,19 @@ export class LowResFrameBuffer implements GenericFrameBuffer {
   storage: Array<ParsedLowResDataFrame>;
   format: DataFormat;
   parser: (dataBuffer: Uint8Array, frameStartIndex: number) => ParsedLowResDataFrame;
+  frameLength: number;
 
   constructor(dataFormat: DataFormat) {
     this.storage = new Array(BUFFER_LENGTH);
     this.format = dataFormat;
-    this.parser = makeLowResFrameParser(dataFormat.layout).parser;
+    let parseInfo = makeLowResFrameParser(dataFormat.layout);
+    this.parser = parseInfo.parser;
+    this.frameLength = parseInfo.frameSize;
   }
 
-  storeRawFrame(index: number, rawFrameData: RawDataFrame) {
+  storeRawFrame(index: number, rawFrameData: RawDataFrame, offset?: number) {
     let dataBuffer = new Uint8Array(rawFrameData);
-    this.storage[index] = this.parser(dataBuffer, 0);
+    this.storage[index] = this.parser(dataBuffer, offset || 0);
   }
 
   getMin(frameIndex: number, channelIndex: number) {
