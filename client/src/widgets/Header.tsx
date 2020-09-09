@@ -56,7 +56,7 @@ class Header extends React.Component {
       <div className={styles.header}>
         <span>
           <span className={[styles.weak, styles.c1].join(" ")}>data source:</span>
-          <span className={[styles.strong, styles.c2].join(" ")}>REALTIME</span>
+          <span className={[styles.strong, styles.c2].join(" ")}>{dataInterface.getSourceDescription()}</span>
           <span
             className={[styles.strong, styles.c3, styles.canInteract, styles.padLeft, styles.padRight].join(" ")}
             title="Select Data Source"

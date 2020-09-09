@@ -10,3 +10,7 @@ export function formatMetricValue(value: number, units: string): string {
     }
     return 'value too small';
 }
+
+export function formatDate(date: Date): string {
+    return `${date.getDate()}-${date.getMonth()}-${date.getFullYear()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+}

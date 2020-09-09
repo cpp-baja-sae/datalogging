@@ -7,14 +7,18 @@ import UpdateIcon from '@material-ui/icons/Update';
 import FileIcon from '@material-ui/icons/InsertDriveFile';
 import { DatalogInfo } from '../data/types';
 import dataInterface from '../data/dataInterface';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
+import { formatDate } from '../util/misc';
 
-export default class DataSourcePanel extends React.Component {
+class DataSourcePanel extends React.Component<RouteComponentProps> {
   render() {
     const openRealtime = () => {
       dataInterface.useRealtimeSource();
+      this.props.history.push('/graphs');
     }
     const openDatalog = (datalog: DatalogInfo) => {
       dataInterface.useDatalogSource(datalog);
+      this.props.history.push('/graphs');
     };
     return (<DatalogsConsumer>{datalogsStoreIn => {
       let datalogsStore = datalogsStoreIn as DatalogsState;
@@ -26,7 +30,7 @@ export default class DataSourcePanel extends React.Component {
       </div>)];
       for (const datalog of datalogsStore.datalogs) {
         let date = datalog.jsdate;
-        let formattedDate = `${date.getDate()}-${date.getMonth()}-${date.getFullYear()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+        let formattedDate = formatDate(date);
         let duration = datalog.duration;
         // Oh god my eyes are on fire.
         let formattedDuration = `${Math.floor(duration / 3600)}h${Math.floor(duration / 60 % 60).toString().padStart(2, '0')}m${Math.floor(duration % 60).toString().padStart(2, '0')}s`
@@ -45,3 +49,5 @@ export default class DataSourcePanel extends React.Component {
     }}</DatalogsConsumer>);
   }
 }
+
+export default withRouter(DataSourcePanel);

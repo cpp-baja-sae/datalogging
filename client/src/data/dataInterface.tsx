@@ -2,6 +2,7 @@ import { FrameBuffer, LowResFrameBuffer, GenericFrameBuffer } from './frame';
 import { addStreamListener, settings, readDataSpan } from '../util/backend';
 import { BUFFER_LENGTH } from '../util/constants';
 import { DataFormat, DatalogInfo } from './types';
+import { formatDate } from '../util/misc';
 
 interface DataSource {
   getValue: (point: number, channel: number) => any;
@@ -9,6 +10,7 @@ interface DataSource {
   getMax: (point: number, channel: number) => any;
   onWindowChange: (newZoom: number, newBaseTime: number) => void;
   format: DataFormat;
+  description: string;
 }
 
 class RealtimeSource implements DataSource {
@@ -19,6 +21,7 @@ class RealtimeSource implements DataSource {
   format: DataFormat;
   lod: number;
   scale: number; // Based on lod.
+  description = 'REALTIME';
 
   constructor(dataFormat: DataFormat, lod: number) {
     this.listeners = [];
@@ -114,11 +117,13 @@ class DatalogSource implements DataSource {
   }>;
   sampleRate: number;
   format: DatalogInfo;
+  description: string;
 
   constructor(datalogInfo: DatalogInfo) {
     this.listeners = [];
     this.sampleRate = (1000 * 1000) / datalogInfo.frame_time_us;
     this.format = datalogInfo;
+    this.description = formatDate(datalogInfo.jsdate);
     this.buffers = [{
       buffer: new FrameBuffer(datalogInfo),
       sampleRate: this.sampleRate,
@@ -295,7 +300,8 @@ class DataInterface {
         total_num_lods: 0,
         lod_sample_interval: 4,
         layout: []
-      }
+      },
+      description: 'LOADING...'
     };
 
     this.realtimeSource = dummySource;
@@ -322,6 +328,10 @@ class DataInterface {
 
   getFormat() {
     return this.currentSource.format;
+  }
+
+  getSourceDescription() {
+    return this.currentSource.description;
   }
 
   // If `isSourceRealtime()`, then time is a negative value where 0 is the most
@@ -401,7 +411,7 @@ class DataInterface {
   }
 
   getTimePerPixel() {
-    return 0.005 / this.getZoomStrength();
+    return 0.04 / this.getZoomStrength();
   }
 
   addSettingsListener(callback: () => void) {
@@ -432,6 +442,7 @@ export default dataInterface;
   let realtimeSource = new RealtimeSource(format, lod);
   dataInterface.realtimeSource = realtimeSource;
   dataInterface.currentSource = dataInterface.realtimeSource;
+  dataInterface._triggerSettingsListeners();
   realtimeSource.addListener(() => {
     if (dataInterface.isSourceRealtime()) dataInterface._triggerListeners();
   });
