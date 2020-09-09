@@ -18,10 +18,13 @@
 // the teensy stays in sync.
 #define TEENSY_LAST_CLOCK_PIN 23
 
+// When everything starts up, the LOD that should by default be streamed back
+// in realtime.
+#define DEFAULT_STREAM_LOD 3
+
 // Write to the file in 4k blocks.
 #define FILE_BLOCK_SIZE 4096 
-// I don't think the buffer needs to be this big but it's not really a problem.
-#define FILE_BUFFER_SIZE (FRAME_SIZE * FILE_BLOCK_SIZE)
+#define FILE_BUFFER_SIZE (FRAME_SIZE * FILE_BLOCK_SIZE * 3)
 
 // The name of the socket to be created to allow this program to talk to other
 // programs on the pi, allowing it to be controlled from outside. This socket
@@ -37,7 +40,8 @@
 #define IPC_COMMAND_BEGIN_FILE 'b'
 #define IPC_COMMAND_END_FILE 'e'
 #define IPC_COMMAND_GET_CONFIG 'c'
-#define IPC_COMMAND_SET_STREAM_INTERVAL 'i'
+#define IPC_COMMAND_GET_STREAM_LOD 'L'
+#define IPC_COMMAND_SET_STREAM_LOD 'l'
 // For simplicity's sake, we always send responses of a fixed size in response
 // to messages received over the IPC socket.
 #define IPC_RESPONSE_SIZE 32

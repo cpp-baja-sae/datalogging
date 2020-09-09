@@ -54,12 +54,12 @@ void write_new_data_to_file(
             unwritten_bytes, FILE_BUFFER_SIZE
         );
     }
-    while (unwritten_bytes > chunk_size) {
+    while (unwritten_bytes >= chunk_size) {
         // We can safely assume the data does not wrap around because the
         // size of the whole buffer is a multiple of chunk_size
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-        fwrite(&source[*read_index], 1, chunk_size, target);
+        fwrite(&source[*read_index], chunk_size, 1, target);
         #pragma GCC diagnostic pop
         unwritten_bytes -= chunk_size;
         *read_index = (*read_index + chunk_size) % FILE_BUFFER_SIZE;
@@ -92,10 +92,10 @@ void *file_worker(void *args) {
             begin_data_log_file();
             // Skip to the most currently written frame.
             pbuf_read_index = pbuf_write_index;
-            pbuf_read_index -= pbuf_write_index % FRAME_SIZE;
+            pbuf_read_index -= pbuf_read_index % FRAME_SIZE;
             while (continue_flag && write_to_file_flag) {
                 update_files();
-                usleep(4000);
+                usleep(50000);
             }
             printf("[WRITER] Closing files.\n");
             fclose(primary_file);

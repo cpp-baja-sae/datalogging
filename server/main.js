@@ -35,9 +35,10 @@ function frame_length_from_format(format) {
     let ws_server = new ws.Server({ server });
 
     console.log('Connecting to Crunch...');
-    let crunch_ipc = await ipc.connect_ipc();
-    let crunch_stream = await ipc.connect_stream();
-    const default_format = await crunch_ipc.send_command(ipc.COMMAND_GET_FORMAT, []);
+    let command_ipc = await ipc.connect_ipc();
+    let ipc_stream = await ipc.connect_stream();
+    const default_format = await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, []);
+    // const frame_size = frame_length_from_format(default_format);
 
     console.log('Configuring web socket server...');
     ws_server.on('connection', (connection) => {
@@ -57,7 +58,8 @@ function frame_length_from_format(format) {
         });
     }, 10000);
 
-    crunch_stream.on('data', (data) => {
+    ipc_stream.on('data', (data) => {
+        console.log(data.length);
         if (ws_server.clients.size === 0) {
             // Don't bother if no one's connected.
             // TODO: If everyone is disconnected, lower the sample rate?
@@ -72,10 +74,32 @@ function frame_length_from_format(format) {
     console.log('Configuring Express endpoints...');
 
     // This way we can use the React dev server while prototyping the UI.
+    // We can also develop the client on a faster, more capable computer while
+    // still being able to access data from the PI, because the react dev server
+    // is slow af with that wimpy 1GHz processor.
     app.use(cors());
+    app.use(express.json());
 
     app.get('/api/default_format', async (req, res) => {
         res.status(200).contentType('json').send(default_format);
+    });
+
+    // The LOD that is being streamed to the client.
+    app.get('/api/settings/stream_lod', async (req, res) => {
+        let value = await command_ipc.send_command(ipc.COMMAND_GET_STREAM_LOD, []);
+        res.status(200).contentType('json').send({
+            stream_lod: value[0]
+        });
+    });
+
+    app.put('/api/settings/stream_lod', async (req, res) => {
+        if (!req.body.stream_lod) {
+            res.status(400).contentType('json').send({error: 'Missing required parameter "stream_lod" in body.'});
+            return;
+        }
+        await command_ipc.send_command(ipc.COMMAND_SET_STREAM_LOD, [req.body.stream_lod]);
+        // realtime_stream_uses_low_res_frames = req.body.stream_lod > 0;
+        res.sendStatus(201);
     });
 
     app.get('/api/datalogs', async (req, res) => {
