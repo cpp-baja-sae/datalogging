@@ -84,3 +84,22 @@ export async function getDefaultFormat() {
   let response = await fetch(url(`/api/default_format`, {}));
   return await response.json();
 }
+
+export async function getStreamLod(): Promise<number> {
+  let response = await fetch(url(`/api/settings/stream_lod`, {}));
+  return (await response.json()).stream_lod;
+}
+
+export async function setStreamLod(newLod: number) {
+  await fetch(
+    url(`/api/settings/stream_lod`, {}), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        stream_lod: newLod,
+      }),
+    }
+  );
+}

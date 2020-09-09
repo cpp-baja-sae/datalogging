@@ -1,5 +1,5 @@
 import { FrameBuffer, LowResFrameBuffer, GenericFrameBuffer } from './frame';
-import { addStreamListener, getDefaultFormat } from '../util/backend';
+import { addStreamListener, getDefaultFormat, getStreamLod, setStreamLod } from '../util/backend';
 import { BUFFER_LENGTH } from '../util/constants';
 import { DataFormat, DatalogInfo } from './types';
 
@@ -16,18 +16,39 @@ class RealtimeSource implements DataSource {
   bufferEnd: number;
   sampleRate: number;
   format: DataFormat;
+  lod: number;
 
-  constructor(dataFormat: DataFormat) {
+  constructor(dataFormat: DataFormat, lod: number) {
     this.listeners = [];
-    this.buffer = new FrameBuffer(dataFormat);
+    this.lod = lod;
     this.bufferEnd = 0;
     this.sampleRate = (1000 * 1000) / dataFormat.frame_time_us;
     this.format = dataFormat;
+    if (this.lod === 0) {
+      this.buffer = new FrameBuffer(this.format);
+    } else {
+      this.buffer = new LowResFrameBuffer(this.format);
+    }
     addStreamListener((newData) => {
       this.buffer.storeRawFrame(this.bufferEnd % BUFFER_LENGTH, newData);
       this.bufferEnd += 1;
       this._triggerListeners();
     });
+  }
+
+  changeLod(lod: number) {
+    if (lod === this.lod) return;
+    this.lod = lod;
+    this._makeBuffers();
+  }
+
+  _makeBuffers() {
+    if (this.lod === 0) {
+      this.buffer = new FrameBuffer(this.format);
+    } else {
+      this.buffer = new LowResFrameBuffer(this.format);
+    }
+    this.bufferEnd = 0;
   }
 
   // Point is a negative number. Zero is most recent sample, negative values are from times
@@ -112,8 +133,8 @@ class DatalogSource implements DataSource {
   getValue(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
-      index < this.buffers[lod].startIndex 
-      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      index < this.buffers[lod].startIndex
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
     ) {
       return 0;
@@ -126,8 +147,8 @@ class DatalogSource implements DataSource {
   getMin(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
-      index < this.buffers[lod].startIndex 
-      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      index < this.buffers[lod].startIndex
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
     ) {
       return 0;
@@ -140,8 +161,8 @@ class DatalogSource implements DataSource {
   getMax(point: number, channel: number) {
     let [lod, index] = this._pointToBufferIndex(point);
     if (
-      index < this.buffers[lod].startIndex 
-      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH) 
+      index < this.buffers[lod].startIndex
+      || index >= (this.buffers[lod].startIndex + BUFFER_LENGTH)
       || index < 0
     ) {
       return 0;
@@ -346,8 +367,10 @@ export default dataInterface;
 
 (async () => {
   console.error('Connecting realtime data...');
-  let realtimeSource = new RealtimeSource(await getDefaultFormat());
-  dataInterface.realtimeSource  = realtimeSource;
+  let format = await getDefaultFormat();
+  let lod = await getStreamLod();
+  let realtimeSource = new RealtimeSource(format, lod);
+  dataInterface.realtimeSource = realtimeSource;
   dataInterface.currentSource = dataInterface.realtimeSource;
   realtimeSource.addListener(() => {
     if (dataInterface.isSourceRealtime()) dataInterface._triggerListeners();
