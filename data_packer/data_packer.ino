@@ -1,5 +1,10 @@
 #include <stdint.h>
 
+// NUMBERS SHOULD ALWAYS BE LITTLE-ENDIAN! This is because the Raspberry Pi does
+// math in Little Endian, and I just lost multiple hours of debugging trying 
+// to figure out why a simple piece of code wasn't correctly computing the 
+// average of two (big-endian) numbers.
+
 IntervalTimer testTimer;
 
 // If defined, the program will use an internal clock instead of waiting for
@@ -212,22 +217,23 @@ void readAdcs(const int CHANNEL_OFFSET) {
         }
     }
 
-    wipBuffer[CHANNEL_OFFSET + 0 + 0] = values[0] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 0 + 1] = values[0] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 0 + 8] = values[1] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 0 + 9] = values[1] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 16 + 0] = values[2] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 16 + 1] = values[2] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 16 + 8] = values[3] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 16 + 9] = values[3] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 32 + 0] = values[4] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 32 + 1] = values[4] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 32 + 8] = values[5] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 32 + 9] = values[5] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 48 + 0] = values[6] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 48 + 1] = values[6] & 0xFF;
-    wipBuffer[CHANNEL_OFFSET + 48 + 8] = values[7] >> 8;
-    wipBuffer[CHANNEL_OFFSET + 48 + 9] = values[7] & 0xFF;
+    // Little endian
+    wipBuffer[CHANNEL_OFFSET + 0 + 0] = values[0] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 0 + 1] = values[0] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 0 + 8] = values[1] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 0 + 9] = values[1] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 16 + 0] = values[2] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 16 + 1] = values[2] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 16 + 8] = values[3] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 16 + 9] = values[3] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 32 + 0] = values[4] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 32 + 1] = values[4] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 32 + 8] = values[5] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 32 + 9] = values[5] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 48 + 0] = values[6] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 48 + 1] = values[6] >> 8;
+    wipBuffer[CHANNEL_OFFSET + 48 + 8] = values[7] & 0xFF;
+    wipBuffer[CHANNEL_OFFSET + 48 + 9] = values[7] >> 8;
 }
 
 void loop() {

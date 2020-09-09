@@ -48,6 +48,11 @@ might represent 4 channels of analog data:
 11223344
 ```
 
+Numbers should always be LITTLE-ENDIAN! This is because the Raspberry Pi does
+math in Little Endian, and I just lost multiple hours of debugging trying 
+to figure out why a simple piece of code wasn't correctly computing the average
+of two (big-endian) numbers.
+
 Every frame in a datalog has the same layout. The layoutof frames in a datalog 
 is specified in `format.json`. Frames sent in real-time use the layout specified
 in `data_router/expected_format.json`. Its contents can be retrieved from 

@@ -12,11 +12,11 @@ const itemTypeSizes: any = {
 type ItemParseFn = (dataBuffer: Uint8Array, itemStartIndex: number) => any;
 const itemParseFns: any = {
   unorm16: (dataBuffer: Uint8Array, itemStartIndex: number) => {
-    let intVal = (dataBuffer[itemStartIndex] << 8) + dataBuffer[itemStartIndex + 1];
+    let intVal = (dataBuffer[itemStartIndex + 1] << 8) + dataBuffer[itemStartIndex];
     return intVal / 0xFFFF;
   },
   snorm16: (dataBuffer: Uint8Array, itemStartIndex: number) => {
-    let intVal = (dataBuffer[itemStartIndex] << 8) + dataBuffer[itemStartIndex + 1];
+    let intVal = (dataBuffer[itemStartIndex + 1] << 8) + dataBuffer[itemStartIndex];
     if (intVal >= 0x8000) {
       intVal -= 0x10000;
     }
