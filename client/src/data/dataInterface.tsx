@@ -337,11 +337,11 @@ class DataInterface {
   getViewPositionText() {
     let abs = Math.abs(this.referenceTime)
     return (this.isSourceRealtime() ? 'T-' : 'T+')
-      + (abs / 3600).toFixed(0)
+      + Math.floor(abs / 3600).toFixed(0)
       + ":"
-      + (abs / 60).toFixed(0).padStart(2, '0')
+      + Math.floor((abs / 60) % 60).toFixed(0).padStart(2, '0')
       + ":"
-      + abs.toFixed(1).padStart(4, '0');
+      + (abs % 60).toFixed(1).padStart(4, '0');
   }
 
   getTimePerPixel() {

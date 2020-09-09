@@ -100,7 +100,7 @@ class Graph extends React.Component<GraphProps> {
     this.context.moveTo(curx, 0);
     this.context.lineTo(curx, height);
     this.context.stroke();
-    let time = (curx - width) * readStep;
+    let time = curx * readStep + leftmostTimeIndex;
     let cury = y(dataInterface.getValue(time, channel));
     this.context.fillStyle = 'white';
     this.context.beginPath();
