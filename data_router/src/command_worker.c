@@ -45,7 +45,7 @@ void run_command(
     case IPC_COMMAND_GET_STREAM_LOD:
         printf("[SOCKET] Received get stream lod command.\n");
         *response = (char*) malloc(1);
-        **response = 10;
+        **response = stream_lod;
         *response_length = 1;
         *dealloc_response = true;
         break;
