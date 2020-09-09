@@ -94,6 +94,11 @@
     font-weight: bold;
 }
 
+.header .zoomVal {
+    min-width: 3em;
+    text-align: center;
+}
+
 .canInteract {
     cursor: pointer;
     user-select: none;

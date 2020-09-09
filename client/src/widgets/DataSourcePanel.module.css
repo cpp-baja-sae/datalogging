@@ -44,7 +44,7 @@
 
 .card {
   padding: 1em;
-  border: 1px solid #f0f;
+  border: 1px solid var(--light-border);
   border-radius: 0.5em;
   max-width: 100%;
   display: grid;

@@ -11,18 +11,29 @@ type GraphProps = {
   showCursor?: boolean,
 };
 
+const cursorFps = 20;
+
 class Graph extends React.Component<GraphProps> {
   listener: () => void;
   resizeListener: () => void;
+  interval: NodeJS.Timeout | null;
 
   constructor(props: Readonly<GraphProps>) {
     super(props);
     this.listener = () => this.forceUpdate();
     this.resizeListener = () => this.forceUpdate();
+    this.interval = null;
   }
 
   componentDidMount() {
-    dataInterface.addListener(this.listener);
+    // If we show a cursor, we should be regularly updating ourselves anyway
+    // so that when the mouse moves, we re-render the cursor. Otherwise we
+    // only need to update when the data we render is changed.
+    if (this.props.showCursor) {
+      this.interval = setInterval(this.listener, 1000 / cursorFps);
+    } else {
+      dataInterface.addListener(this.listener);
+    }
     window.addEventListener('resize', this.resizeListener);
   }
 
@@ -41,6 +52,9 @@ class Graph extends React.Component<GraphProps> {
   }
 
   componentWillUnmount() {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
     dataInterface.removeListener(this.listener);
     window.removeEventListener('resize', this.resizeListener);
   }

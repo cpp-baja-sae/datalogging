@@ -1,6 +1,6 @@
 :root {
   --dark-border: #000;
-  --light-border: #111;
+  --light-border: var(--dark-border); /* Previously #111 */
   --surface-background: #222;
 }
 

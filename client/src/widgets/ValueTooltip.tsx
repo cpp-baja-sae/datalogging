@@ -32,7 +32,11 @@ export default class ValueTooltip extends React.Component {
     if (!element) return;
 
     this.currentInterval = setInterval(() => {
-      if (mousePos.x <= mousePos.graphStartX || mousePos.x >= mousePos.graphEndX) {
+      if (
+        mousePos.x <= mousePos.graphStartX 
+        || mousePos.x >= mousePos.graphEndX 
+        || mousePos.y <= mousePos.headerHeight
+      ) {
         element.style.display = 'none';
         return;
       } else {

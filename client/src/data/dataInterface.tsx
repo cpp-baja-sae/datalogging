@@ -411,7 +411,7 @@ class DataInterface {
   }
 
   getTimePerPixel() {
-    return 0.04 / this.getZoomStrength();
+    return 0.1 / this.getZoomStrength();
   }
 
   addSettingsListener(callback: () => void) {

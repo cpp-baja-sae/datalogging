@@ -12,6 +12,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import dataInterface from '../data/dataInterface';
 
 import styles from './Header.module.css';
+import mousePos from '../util/mousePos';
 
 class Header extends React.Component {
   listener: () => void;
@@ -23,6 +24,11 @@ class Header extends React.Component {
 
   componentDidMount() {
     dataInterface.addSettingsListener(this.listener);
+  }
+
+  onDivSpawn(div: HTMLDivElement) {
+    let bounds = div.getBoundingClientRect();
+    mousePos.headerHeight = bounds.bottom;
   }
 
   componentWillUnmount() {
@@ -53,7 +59,7 @@ class Header extends React.Component {
     };
 
     return (
-      <div className={styles.header}>
+      <div className={styles.header} ref={ref => ref ? this.onDivSpawn(ref) : null}>
         <span>
           <span className={[styles.weak, styles.c1].join(" ")}>data source:</span>
           <span className={[styles.strong, styles.c2].join(" ")}>{dataInterface.getSourceDescription()}</span>
@@ -103,7 +109,7 @@ class Header extends React.Component {
         </Link>
         <span>
           <span className={[styles.weak, styles.c1].join(" ")}>zoom:</span>
-          <span className={[styles.strong, styles.c2].join(" ")}>{zoomStrengthText}</span>
+          <span className={[styles.strong, styles.c2, styles.zoomVal].join(" ")}>{zoomStrengthText}</span>
           <span
             className={[styles.strong, styles.c3, styles.canInteract, styles.padLeft].join(" ")}
             title="Zoom In"
