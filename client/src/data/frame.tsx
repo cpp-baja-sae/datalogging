@@ -5,8 +5,8 @@ import { DataLayout, DataFormat, ParsedDataFrame, RawDataFrame, ParsedLowResData
 const itemTypeSizes: any = {
   unorm16: 2,
   snorm16: 2,
-  dummy8: 2,
-  dummy64: 2,
+  dummy8: 1,
+  dummy64: 8,
 };
 
 type ItemParseFn = (dataBuffer: Uint8Array, itemStartIndex: number) => any;
