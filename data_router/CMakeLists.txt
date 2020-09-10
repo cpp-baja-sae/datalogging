@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 project(data_router C)
 
+# Without this, file writing craps out after 2GB.
+# See https://stackoverflow.com/questions/730709/2gb-limit-on-file-size-when-using-fwrite-in-c
+add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE)
+
 add_executable(
   data_router 
   src/main.c 
