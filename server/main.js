@@ -22,15 +22,15 @@ const FORMAT_SIZES = {
 
 // How many characters it takes to represent each data type in an exported CSV file.
 const FORMAT_CSV_SIZES = {
-    unorm16: 6,
-    snorm16: 7,
+    unorm16: 7,
+    snorm16: 8,
     dummy8: 1,
     dummy64: 1
 };
 
 const FORMAT_PARSERS = {
-    unorm16: (buffer, offset) => (buffer.readUInt16LE(offset) / 0xFFFF).toFixed(4),
-    snorm16: (buffer, offset) => (buffer.readInt16LE(offset) / 0x7FFF).toFixed(4),
+    unorm16: (buffer, offset) => (buffer.readUInt16LE(offset) / 0xFFFF).toFixed(5),
+    snorm16: (buffer, offset) => (buffer.readInt16LE(offset) / 0x7FFF).toFixed(5),
     dummy8: (_buffer, _offset) => '0',
     dummy64: (_buffer, _offset) => '0',
 };
@@ -227,7 +227,7 @@ function frame_length_from_format(format) {
 
         res.status(200).contentType('text/csv');
 
-        let header = '';
+        let header = 'time [ms],';
         if (req.query.lod === '0') {
             for (let channel of channels) {
                 header += format.layout[channel].group + '/' + format.layout[channel].name + ',';
@@ -244,7 +244,9 @@ function frame_length_from_format(format) {
         let currentChannelIndex = 0;
         let currentSubframe = 0;
         let totalSubframes = req.query.lod == 0 ? 1 : 3;
-        let line = '';
+        let timePerFrame = format.frame_time_us / (1000 * 1000);
+        let time = req.query.start * timePerFrame;
+        let line = '' + (time * 1000).toFixed(1) + ',';
         let leftover_bytes = null;
         segment_stream.on('data', (chunk) => {
             if (leftover_bytes !== null) {
@@ -265,7 +267,8 @@ function frame_length_from_format(format) {
                     if (currentSubframe === totalSubframes) {
                         currentSubframe = 0;
                         res.write(line + '\n');
-                        line = '';
+                        time += timePerFrame;
+                        line = '' + (time * 1000).toFixed(1) + ',';
                     }
                 }
                 type = format.layout[currentChannelIndex].type;
@@ -296,12 +299,15 @@ function frame_length_from_format(format) {
             });
             return;
         }
-        if (!req.query.channels) {
+
+        if (req.query.end < req.query.start) {
             return 0;
         }
 
         let channels = req.query.channels;
-        if (typeof channels !== typeof []) {
+        if (channels === undefined) {
+            channels = [];
+        } else if (typeof channels !== typeof []) {
             channels = [channels];
         }
         channels = channels.map(x => parseInt(x));
@@ -310,7 +316,7 @@ function frame_length_from_format(format) {
         if (!format) return;
         // Close the file since we don't need it.
         segment_stream.destroy();
-        let line_length = channels.length + 1; // Commas and newline.
+        let line_length = channels.length + 1 + 10; // Commas and newline and timestamp.
         for (let channel of channels) {
             line_length += FORMAT_CSV_SIZES[format.layout[channel].type];
         }
