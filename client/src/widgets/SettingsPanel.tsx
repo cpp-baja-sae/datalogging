@@ -51,7 +51,10 @@ export default class SettingsPanel extends React.Component<{}, SettingsPanelStat
       let frameSize = frameSizeFromFormat(this.state.format);
       let bitsPerSecond = frameSize * 8 * frequency;
       for (let lod = 0; lod < this.state.format.total_num_lods; lod++) {
-        let title = formatMetricValue(frequency, 'Hz') + ' / ' + formatMetricValue(bitsPerSecond, 'bps');
+        // LODs that are not max resolution have 3 sub frames for min, max, avg.
+        let multiplier = lod == 0 ? 1 : 3;
+        let title = formatMetricValue(frequency, 'Hz') 
+          + ' / ' + formatMetricValue(bitsPerSecond * multiplier, 'bps');
         options.push((<MenuItem key={lod} value={lod}>{title}</MenuItem>));
         frequency /= this.state.format.lod_sample_interval;
         bitsPerSecond /= this.state.format.lod_sample_interval;
