@@ -36,8 +36,8 @@ const FORMAT_CSV_SIZES = {
 const FORMAT_PARSERS = {
     unorm16: (buffer, offset) => (buffer.readUInt16LE(offset) / 0xFFFF).toFixed(5),
     snorm16: (buffer, offset) => (buffer.readInt16LE(offset) / 0x7FFF).toFixed(5),
-    uint8: (buffer, offset) => buffer.readInt8LE(offset).toFixed(0),
-    error_code: (buffer, offset) => buffer.readInt8LE(offset).toFixed(0),
+    uint8: (buffer, offset) => buffer.readUInt8(offset).toFixed(0),
+    error_code: (buffer, offset) => buffer.readUInt8(offset).toFixed(0),
     dummy8: (_buffer, _offset) => '0',
     dummy64: (_buffer, _offset) => '0',
 };

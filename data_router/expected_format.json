@@ -197,12 +197,12 @@
         {
             "group": "Diagnostics",
             "name": "Error Count",
-            "type": "dummy8"
+            "type": "uint8"
         },
         {
             "group": "Diagnostics",
             "name": "Last Error Cause",
-            "type": "dummy8"
+            "type": "error_code"
         }
     ]
 }
