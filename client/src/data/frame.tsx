@@ -5,6 +5,8 @@ import { DataLayout, DataFormat, ParsedDataFrame, RawDataFrame, ParsedLowResData
 const itemTypeSizes: any = {
   unorm16: 2,
   snorm16: 2,
+  uint8: 1,
+  error_code: 1,
   dummy8: 1,
   dummy64: 8,
 };
@@ -21,6 +23,12 @@ const itemParseFns: any = {
       intVal -= 0x10000;
     }
     return (intVal / 0x7FFF);
+  },
+  uint8: (dataBuffer: Uint8Array, itemStartIndex: number) => {
+    return dataBuffer[itemStartIndex];
+  },
+  error_code: (dataBuffer: Uint8Array, itemStartIndex: number) => {
+    return dataBuffer[itemStartIndex];
   },
   dummy8: (_dataBuffer: Uint8Array, _itemStartIndex: number) => 0,
   dummy64: (_dataBuffer: Uint8Array, _itemStartIndex: number) => 0,

@@ -16,21 +16,28 @@ const data_dir = '/root/datalogs';
 const FORMAT_SIZES = {
     unorm16: 2,
     snorm16: 2,
+    uint8: 1,
+    error_code: 1,
     dummy8: 1,
     dummy64: 8
 };
 
-// How many characters it takes to represent each data type in an exported CSV file.
+// The maximum characters it takes to represent each data type in an exported CSV file.
 const FORMAT_CSV_SIZES = {
     unorm16: 7,
     snorm16: 8,
+    uint8: 3,
+    error_code: 3,
     dummy8: 1,
     dummy64: 1
 };
 
+// Represent the value as text going into a CSV file.
 const FORMAT_PARSERS = {
     unorm16: (buffer, offset) => (buffer.readUInt16LE(offset) / 0xFFFF).toFixed(5),
     snorm16: (buffer, offset) => (buffer.readInt16LE(offset) / 0x7FFF).toFixed(5),
+    uint8: (buffer, offset) => buffer.readInt8LE(offset).toFixed(0),
+    error_code: (buffer, offset) => buffer.readInt8LE(offset).toFixed(0),
     dummy8: (_buffer, _offset) => '0',
     dummy64: (_buffer, _offset) => '0',
 };

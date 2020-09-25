@@ -85,72 +85,14 @@ IntervalTimer testTimer;
     DELAY_5NS;                                                                 \
     DELAY_5NS
 
-void setupOutputPin(const int pinNumber, const int value) {
-    pinMode(pinNumber, OUTPUT);
-    digitalWriteFast(pinNumber, value);
-}
-
 int currentStep = STEPS_PER_FRAME - 1;
-
-void setup() {
-    setupOutputPin(PIN_ONBOARD_LED, LOW);
-
-    setupOutputPin(PIN_ADCS_CS, HIGH);
-    setupOutputPin(PIN_ADCS_SCLK, HIGH);
-    setupOutputPin(PIN_ADCS_RESET, LOW);
-    setupOutputPin(PIN_ADCS_CONVST, HIGH);
-    setupOutputPin(PIN_ERROR, LOW);
-
-    setupOutputPin(PIN_PICOM_0, LOW);
-    setupOutputPin(PIN_PICOM_1, LOW);
-    setupOutputPin(PIN_PICOM_2, LOW);
-    setupOutputPin(PIN_PICOM_3, LOW);
-    setupOutputPin(PIN_PICOM_4, LOW);
-    setupOutputPin(PIN_PICOM_5, LOW);
-    setupOutputPin(PIN_PICOM_6, LOW);
-    setupOutputPin(PIN_PICOM_7, LOW);
-
-    pinMode(PIN_ADC0_DOUTA, INPUT_PULLUP);
-    pinMode(PIN_ADC0_DOUTB, INPUT_PULLUP);
-    pinMode(PIN_ADC1_DOUTA, INPUT_PULLUP);
-    pinMode(PIN_ADC1_DOUTB, INPUT_PULLUP);
-    pinMode(PIN_ADC2_DOUTA, INPUT_PULLUP);
-    pinMode(PIN_ADC2_DOUTB, INPUT_PULLUP);
-    pinMode(PIN_ADC3_DOUTA, INPUT_PULLUP);
-    pinMode(PIN_ADC3_DOUTB, INPUT_PULLUP);
-    pinMode(PIN_PICOM_CLOCK, INPUT_PULLUP);
-    pinMode(PIN_PICOM_LAST_STEP, INPUT_PULLUP);
-
-    // For error messages.
-    Serial.begin(115200);
-
-#ifdef USE_TEST_TIMER
-    testTimer.begin(onStepClockReceived, TEST_TIMER_PERIOD);
-#else
-    attachInterrupt(digitalPinToInterrupt(PIN_PICOM_CLOCK), onStepClockReceived,
-                    RISING);
-#endif
-
-    // Wait to start receiving clock signals from the raspberry pi.
-    endStep();
-    endStep();
-    endStep();
-    // Keep consuming clock signals until we reach the last clock cycle of a
-    // frame.
-    while (true) {
-        endStep();
-        if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
-            currentStep = 0;
-            break;
-        }
-    }
-    // Now the main loop can begin and we will be in sync with the raspi.
-}
 
 uint8_t dataBuffer1[STEPS_PER_FRAME], dataBuffer2[STEPS_PER_FRAME];
 uint8_t *completedBuffer = &dataBuffer1[0], *wipBuffer = &dataBuffer2[0];
 
 volatile bool stepClockReceived = false;
+int lastBadStep = 0;
+bool encounteredBadStep = false;
 
 void onStepClockReceived() { stepClockReceived = true; }
 
@@ -161,12 +103,18 @@ void endStep() {
     // This means we already received a clock signal. We should have to wait for
     // it. If it's already here that means we're late.
     if (stepClockReceived) {
+        stepClockReceived = false;
         digitalWriteFast(PIN_ONBOARD_LED, HIGH);
-        digitalWriteFast(PIN_ERROR, HIGH);
+        // Don't overwrite an error we've already stored. Having a bad step can
+        // easily lead to the next step being bad, obfuscating the real cause of
+        // the error.
+        if (!encounteredBadStep) {
+            encounteredBadStep = true;
+            lastBadStep = currentStep;
+        }
         // Serial.print("ERROR: Step ");
         // Serial.print(currentStep);
         // Serial.print(" did not finish before the next step.\n");
-        stepClockReceived = false;
     } else {
         digitalWriteFast(PIN_ERROR, LOW);
         while (!stepClockReceived) {
@@ -236,7 +184,29 @@ void readAdcs(const int CHANNEL_OFFSET) {
     wipBuffer[CHANNEL_OFFSET + 48 + 9] = values[7] >> 8;
 }
 
-void loop() {
+// Called once before doCycle()
+void reset() {
+    // Wait to start receiving clock signals from the raspberry pi.
+    endStep();
+    endStep();
+    endStep();
+    // Keep consuming clock signals until we reach the last clock cycle of a
+    // frame.
+    while (true) {
+        endStep();
+        if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
+            currentStep = 0;
+            break;
+        }
+    }
+    // Since we were only trying to get in sync, an "error" just means we
+    // started that process in the middle of a step, so nothing to worry about.
+    encounteredBadStep = false;
+}
+
+// Called over and over again until there is an error, at which point reset() is
+// called and this resumes being called over and over again.
+void doFrame() {
     { // Read ADCs, 8 steps
         digitalWriteFast(PIN_ADCS_CS, LOW);
         // readAdcs() uses an endStep() in the middle of it to break up its
@@ -287,4 +257,69 @@ void loop() {
         wipBuffer = completedBuffer;
         completedBuffer = tmp;
     }
+}
+
+void setupOutputPin(const int pinNumber, const int value) {
+    pinMode(pinNumber, OUTPUT);
+    digitalWriteFast(pinNumber, value);
+}
+
+void setup() {
+    setupOutputPin(PIN_ONBOARD_LED, LOW);
+
+    setupOutputPin(PIN_ADCS_CS, HIGH);
+    setupOutputPin(PIN_ADCS_SCLK, HIGH);
+    setupOutputPin(PIN_ADCS_RESET, LOW);
+    setupOutputPin(PIN_ADCS_CONVST, HIGH);
+    setupOutputPin(PIN_ERROR, LOW);
+
+    setupOutputPin(PIN_PICOM_0, LOW);
+    setupOutputPin(PIN_PICOM_1, LOW);
+    setupOutputPin(PIN_PICOM_2, LOW);
+    setupOutputPin(PIN_PICOM_3, LOW);
+    setupOutputPin(PIN_PICOM_4, LOW);
+    setupOutputPin(PIN_PICOM_5, LOW);
+    setupOutputPin(PIN_PICOM_6, LOW);
+    setupOutputPin(PIN_PICOM_7, LOW);
+
+    pinMode(PIN_ADC0_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC0_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC1_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC1_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC2_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC2_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_ADC3_DOUTA, INPUT_PULLUP);
+    pinMode(PIN_ADC3_DOUTB, INPUT_PULLUP);
+    pinMode(PIN_PICOM_CLOCK, INPUT_PULLUP);
+    pinMode(PIN_PICOM_LAST_STEP, INPUT_PULLUP);
+
+    // Index 98 is error count, index 99 is last error cause.
+    dataBuffer1[98] = 0;
+    dataBuffer1[99] = 0xFF;
+    dataBuffer2[98] = 0;
+    dataBuffer2[99] = 0xFF;
+
+    // For error messages.
+    Serial.begin(115200);
+
+#ifdef USE_TEST_TIMER
+    testTimer.begin(onStepClockReceived, TEST_TIMER_PERIOD);
+#else
+    attachInterrupt(digitalPinToInterrupt(PIN_PICOM_CLOCK), onStepClockReceived,
+                    RISING);
+#endif
+}
+
+void loop() {
+    reset();
+    while (!encounteredBadStep) {
+        doFrame();
+    }
+    // Index 98 is error count, index 99 is last error cause.
+    dataBuffer1[98]++;
+    dataBuffer1[99] = lastBadStep;
+    dataBuffer2[98]++;
+    dataBuffer2[99] = lastBadStep;
+
+    encounteredBadStep = false;
 }

@@ -36,6 +36,10 @@ types:
   Occupies two bytes.
 - **snorm16**: Signed (two's compliment) normalized 16-bit number, I.E. a value 
   from -1.0 to 1.0. Occupies two bytes.
+- **uint8**: Unsigned 8-bit integer, a value from 0 to 255.
+- **error_code**: An error code, currently the only use of this is to identify 
+  which step last took an unexpectedly long amount of time on the Teensy. It is
+  formatted as an unsigned 8-bit integer.
 - **dummy8**: An unused 8-bit (1 byte) value. This can be used as a placeholder.
 - **dummy64**: An unused 64-bit (8 byte) value. This can be used as a 
   placeholder.
@@ -82,8 +86,9 @@ frame.
 
 ## Developer notes
 The following code segments need to be modified when a new item type is added:
-- `frame_length_from_format()` in `server/main.js`
 - `data_types = ` in `data_router/generate_code.py`
+- `FORMAT_SIZES`, `FORMAT_CSV_SIZES`, and `FORMAT_PARSERS` in `server/main.js`
+- `itemTypeSizes` and `itemParseFns` in `frame.tsx`
 
 ## format.json example
 

@@ -195,13 +195,13 @@
             "type": "dummy8"
         },
         {
-            "group": "Dummy",
-            "name": "Y",
+            "group": "Diagnostics",
+            "name": "Error Count",
             "type": "dummy8"
         },
         {
-            "group": "Dummy",
-            "name": "Z",
+            "group": "Diagnostics",
+            "name": "Last Error Cause",
             "type": "dummy8"
         }
     ]
