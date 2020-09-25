@@ -1,8 +1,8 @@
 #include <stdint.h>
 
 // NUMBERS SHOULD ALWAYS BE LITTLE-ENDIAN! This is because the Raspberry Pi does
-// math in Little Endian, and I just lost multiple hours of debugging trying 
-// to figure out why a simple piece of code wasn't correctly computing the 
+// math in Little Endian, and I just lost multiple hours of debugging trying
+// to figure out why a simple piece of code wasn't correctly computing the
 // average of two (big-endian) numbers.
 
 IntervalTimer testTimer;
@@ -123,7 +123,7 @@ void endStep() {
     }
     // Set bits 24-32 of GPIO6_DR to the byte we want to transmit.
     // Unfortunately our microcontrollers have an internalized phobia of writing
-    // multiple pins at the same time and end up causing erratic timing errors 
+    // multiple pins at the same time and end up causing erratic timing errors
     // as a coping mechanism. Instead we'll use a safer but more verbose method
     // until we can get a qualified electropsychologist to fix the problem.
     // Ideally the compiler will optimize all the writes into something with
@@ -202,6 +202,7 @@ void reset() {
     // Since we were only trying to get in sync, an "error" just means we
     // started that process in the middle of a step, so nothing to worry about.
     encounteredBadStep = false;
+    digitalWriteFast(PIN_ONBOARD_LED, LOW);
 }
 
 // Called over and over again until there is an error, at which point reset() is
@@ -244,7 +245,7 @@ void doFrame() {
         endStep();
         // If we get this signal anytime we should immediately proceed back to
         // the start of the main loop. Without it everything still seems to be
-        // robust and not drifting out of sync, so this is more of a just in 
+        // robust and not drifting out of sync, so this is more of a just in
         // case a stray gamma ray hits something kind of thing.
         if (digitalReadFast(PIN_PICOM_LAST_STEP)) {
             currentStep = 0;
@@ -322,4 +323,5 @@ void loop() {
     dataBuffer2[99] = lastBadStep;
 
     encounteredBadStep = false;
+    digitalWriteFast(PIN_ONBOARD_LED, LOW);
 }
