@@ -1,12 +1,12 @@
 #include "test.h"
 
+// The USB protocol can transfer up to 64 bytes in a single packet.
+const char *DATA_PACKET = "000000000000000000000000000000000000000000000000000000000000000\n";
+
 void setup() {
 }
 
+int value = 0;
 void loop() {
-  int value = 0;
-  for (int i = 0; i < 600 * 1000 * 1000; i++) {
-    value += i;
-    value -= i;
-  }
+  Serial.print(DATA_PACKET);
 }
