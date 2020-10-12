@@ -16,10 +16,11 @@ protocol can transfer up to 64 bytes in a single packet, so it's good to be
 sending exactly 64 bytes at a time with `Serial.print()` for maximum
 performance.
 
-SD card write speed seems to stay above 300KiB/s most of the time if you write
-in chunks of 512 bytes. Now and again it seems to dip to 45KiB/s and below which 
-is concerning. I estimate with a 500Hz sample rate we will be writing at about
-150KiB/s.
+https://forum.pjrc.com/threads/61289-Question-on-the-correct-usage-of-the-SD-Card-on-Teensy-4-1
+https://github.com/greiman/SdFat-beta
+By writing to the SD card in chunks of 512 bytes and calling .flush() manually
+every 1MiB we can reach write speeds of 15MiB/s. Reading in 512 byte chunks
+gives us a very steady read rate of 21.6MiB/s.
 
 SD library limitations:
 - Requires FAT16 or FAT32 formatted SD card

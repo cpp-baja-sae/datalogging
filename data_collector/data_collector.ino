@@ -1,5 +1,6 @@
+// #include <SD.h>
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <stdlib.h>
 
 #define FRAME_SIZE 100
@@ -28,6 +29,8 @@ struct FileBuffer {
 
 };
 
+SdFat32 sd;
+
 // Buffer must point to a region of at least 7 bytes of memory. This function
 // places a null-terminated string in the form "slotIndex/fileIndex" into the
 // provided buffer.
@@ -46,13 +49,13 @@ void setup() {
   // The main serial connection is over USB and the Teensy bumps up the baud 
   // rate to the maximum USB speed automatically.
   Serial.begin(9600);
-  while (!Serial);
+  while (!Serial && millis() < 5000);
 
-  if (!SD.begin(BUILTIN_SDCARD)) {
+  if (!sd.begin(SdioConfig(FIFO_SDIO))) {
     criticalError("Failed to load SD card.");
   }
 
-  File root = SD.open("/");
+  File root = sd.open("/");
 
   // Read the list of files on the SD card so that we don't overwrite any
   // existing datalogs.
@@ -66,7 +69,7 @@ void setup() {
     storedDatalogs[parsedName] = true;
   }
 
-  File test = SD.open("12/0", FILE_WRITE);
+  File test = sd.open("12/1", FILE_WRITE);
   if (!test) {
     criticalError("Failed to open file");
   }
@@ -75,11 +78,9 @@ void setup() {
     for (int i = 0; i < 1024; i++) {
       test.write(buf, 512);
       test.write(buf, 512);
-      test.flush();
       Serial.write("\n");
     }
-    test.close();
-    test = SD.open("12/0", FILE_WRITE);
+    test.flush();
   }
   test.close();
 }
