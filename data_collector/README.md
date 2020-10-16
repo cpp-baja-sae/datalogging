@@ -16,14 +16,13 @@ protocol can transfer up to 64 bytes in a single packet, so it's good to be
 sending exactly 64 bytes at a time with `Serial.print()` for maximum
 performance.
 
-https://forum.pjrc.com/threads/61289-Question-on-the-correct-usage-of-the-SD-Card-on-Teensy-4-1
-https://github.com/greiman/SdFat-beta
 By writing to the SD card in chunks of 512 bytes and calling .flush() manually
 every 1MiB we can reach write speeds of 15MiB/s. Reading in 512 byte chunks
-gives us a very steady read rate of 21.6MiB/s.
+gives us a very steady read rate of 21.6MiB/s. Unfortunately, to accomplish
+this, you have to install this library: https://github.com/greiman/SdFat-beta as
+the default Arduino SD library is not capable of producing these speeds on the
+Teensy 4.1.
+https://forum.pjrc.com/threads/61289-Question-on-the-correct-usage-of-the-SD-Card-on-Teensy-4-1
+The SD card should be formatted as ExFAT so that it can store files over 4GB in
+size.
 
-SD library limitations:
-- Requires FAT16 or FAT32 formatted SD card
-- Filenames are 8.3 format
-- Filenames are case insensitive
-- More at https://www.arduino.cc/en/reference/SD
