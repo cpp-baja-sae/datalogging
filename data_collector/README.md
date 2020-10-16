@@ -23,6 +23,6 @@ this, you have to install this library: https://github.com/greiman/SdFat-beta as
 the default Arduino SD library is not capable of producing these speeds on the
 Teensy 4.1.
 https://forum.pjrc.com/threads/61289-Question-on-the-correct-usage-of-the-SD-Card-on-Teensy-4-1
-The SD card should be formatted as ExFAT so that it can store files over 4GB in
+The SD card should be formatted as ExFAT so that it can store files over 2GB in
 size.
 

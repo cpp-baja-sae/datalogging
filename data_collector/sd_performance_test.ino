@@ -1,4 +1,3 @@
-// #include <SD.h>
 #include <SPI.h>
 #include <SdFat.h>
 #include <stdlib.h>
