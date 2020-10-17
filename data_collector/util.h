@@ -14,6 +14,10 @@
 #define SD_SECTOR_SIZE 512
 #define FILE_BUFFER_SIZE (SD_SECTOR_SIZE * 16)
 
+// When this is defined, ring buffers will trigger a critical error if they
+// overflow.
+#define DO_OVERFLOW_CHECKS
+
 /**
  * Causes the program to stop running, the onboard LED to flash, and the provided error message to
  * repeatedly be printed to any serial monitor which is listening over the USB port.

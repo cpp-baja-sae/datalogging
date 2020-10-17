@@ -46,3 +46,41 @@ void setupSdCard() {
   }
 }
 
+FileBuffer::FileBuffer(int slot, int file) {
+  char fileName[7];
+  itoa(slot, fileName, 10);
+  globalSd.mkdir(fileName);
+  makeFilePath(fileName, slot, file);
+  // Delete any existing file data so that we're only writing new data.
+  globalSd.remove(fileName);
+  this->writeTo = globalSd.open(fileName, FILE_WRITE);
+  if (!this->writeTo) {
+    criticalError("Failed to open file for file buffer.");
+  }
+  this->numWritesSinceLastFlush = 0;
+}
+
+void FileBuffer::append(const char *data, uint32_t len) {
+  this->data.append(data, len);
+}
+
+bool FileBuffer::writeSector() {
+  if (this->data.unreadLen() >= SD_SECTOR_SIZE) {
+    this->writeTo.write(this->data.read(SD_SECTOR_SIZE), SD_SECTOR_SIZE);
+    this->numWritesSinceLastFlush += 1;
+  }
+  return this->data.unreadLen() >= SD_SECTOR_SIZE;
+}
+
+void FileBuffer::flushIfNeeded() {
+  // Flush every 1MiB
+  if (this->numWritesSinceLastFlush >= 1024 * 1024 / SD_SECTOR_SIZE) {
+    this->numWritesSinceLastFlush = 0;
+    this->writeTo.flush();
+  }
+}
+
+void FileBuffer::close() {
+  this->writeTo.close();
+}
+

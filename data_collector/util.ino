@@ -26,6 +26,11 @@ void RingBuffer<SIZE>::appendContinuous(const char *data, uint32_t len) {
 
 template<int SIZE>
 void RingBuffer<SIZE>::append(const char *data, uint32_t len) {
+  #ifdef DO_OVERFLOW_CHECKS
+  if (this->unreadLen() + len >= SIZE) {
+    criticalError("Ring buffer overflowed.");
+  }
+  #endif
   if (len + this->writeIndex > SIZE) {
     uint32_t partialSegmentLen = SIZE - this->writeIndex;
     this->appendContinuous(data, partialSegmentLen);
