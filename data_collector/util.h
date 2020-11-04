@@ -9,6 +9,11 @@
 // After 20 tasks have been performed, a frame should be saved to a file buffer.
 // AKA 500Hz.
 #define TASKS_PER_FRAME 20
+#define FRAME_INTERVAL_US (TASK_INTERVAL_US * TASKS_PER_FRAME)
+// Frame buffers store data for the main loop to write to files. Increasing this
+// number allows the main loop to get caught up longer waiting for other things
+// to finish before attending to waiting data without losing data.
+#define NUM_FRAME_BUFFERS 256
 // Writing this many bytes to the SD card at a time results in improved 
 // performance.
 #define SD_SECTOR_SIZE 512
@@ -24,18 +29,18 @@
  */
 void criticalError(const char *error);
 
-template<int SIZE>
+template<int SIZE, typename T>
 class RingBuffer {
 private:
-  char data[SIZE];
+  T data[SIZE];
   uint32_t readIndex = 0, writeIndex = 0;
-  void appendContinuous(const char *data, uint32_t len);
+  void appendContinuous(const T *data, uint32_t len);
 public:
   /**
    * Appends additional data to this ring buffer. Len must be smaller than SIZE.
    * Nothing has to be aligned.
    */
-  void append(const char *data, uint32_t len);
+  void append(const T *data, uint32_t len);
   /**
    * Reads [len] unread bytes of data. Len must be smaller than or equal to SIZE
    * and unreadLen(). Data cannot be read such that it would cross over the
@@ -43,7 +48,7 @@ public:
    * to do read(2) followed by read(1), but not valid to do read(2) followed by
    * read(2).
    */
-  char *read(uint32_t len);
+  T *read(uint32_t len);
   /** 
    * Returns how many bytes have been appended that have not yet been read.
    */

@@ -13,9 +13,9 @@ void criticalError(const char *error) {
   }
 }
 
-template<int SIZE>
-void RingBuffer<SIZE>::appendContinuous(const char *data, uint32_t len) {
-  char *writeTo = &this->data[this->writeIndex];
+template<int SIZE, typename T>
+void RingBuffer<SIZE, T>::appendContinuous(const T *data, uint32_t len) {
+  T *writeTo = &this->data[this->writeIndex];
   this->writeIndex = (this->writeIndex + len) % SIZE;
   for (; len > 0; len--) {
     *writeTo = *data;
@@ -24,8 +24,8 @@ void RingBuffer<SIZE>::appendContinuous(const char *data, uint32_t len) {
   }
 }
 
-template<int SIZE>
-void RingBuffer<SIZE>::append(const char *data, uint32_t len) {
+template<int SIZE, typename T>
+void RingBuffer<SIZE, T>::append(const T *data, uint32_t len) {
   #ifdef DO_OVERFLOW_CHECKS
   if (this->unreadLen() + len >= SIZE) {
     criticalError("Ring buffer overflowed.");
@@ -34,21 +34,24 @@ void RingBuffer<SIZE>::append(const char *data, uint32_t len) {
   if (len + this->writeIndex > SIZE) {
     uint32_t partialSegmentLen = SIZE - this->writeIndex;
     this->appendContinuous(data, partialSegmentLen);
-    this->appendContinuous(data + partialSegmentLen, len - partialSegmentLen);
+    this->appendContinuous(
+      data + partialSegmentLen * sizeof(T), 
+      len - partialSegmentLen
+    );
   } else {
     this->appendContinuous(data, len);
   }
 }
 
-template<int SIZE>
-char *RingBuffer<SIZE>::read(uint32_t len) {
-  char *retVal = &this->data[readIndex];
+template<int SIZE, typename T>
+T *RingBuffer<SIZE, T>::read(uint32_t len) {
+  T *retVal = &this->data[readIndex];
   this->readIndex = (this->readIndex + len) % SIZE;
   return retVal;
 }
 
-template<int SIZE>
-uint32_t RingBuffer<SIZE>::unreadLen() {
+template<int SIZE, typename T>
+uint32_t RingBuffer<SIZE, T>::unreadLen() {
   if (this->writeIndex >= this->readIndex) {
     // The write pointer has not looped around the end of the buffer compared to 
     // the read pointer.

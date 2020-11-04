@@ -21,7 +21,7 @@ void setupSdCard();
  */
 class FileBuffer {
 private:
-  RingBuffer<FILE_BUFFER_SIZE> data;
+  RingBuffer<FILE_BUFFER_SIZE, char> data;
   uint32_t numWritesSinceLastFlush;
   ExFile writeTo;
 public:
