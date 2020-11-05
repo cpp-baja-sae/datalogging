@@ -46,6 +46,29 @@ void setupSdCard() {
   }
 }
 
+void sendFileOverUsb(int slot, int fileIndex) {
+  char fileName[7];
+  makeFilePath(fileName, slot, fileIndex);
+  ExFile file = globalSd.open(fileName, FILE_READ);
+  if (!file) {
+    criticalError("Cannot send file over USB, failed to open file.");
+  }
+  uint64_t size = file.size();
+  if (size % USB_PACKET_SIZE != 0) {
+    size -= size % USB_PACKET_SIZE;
+  }
+  Serial.write((char*) &size, 8);
+  Serial.println();
+  Serial.flush();
+  Serial.send_now();
+  char buffer[USB_PACKET_SIZE];
+  for (uint64_t p = 0; p < size / USB_PACKET_SIZE; p++) {
+    file.read(&buffer[0], USB_PACKET_SIZE);
+    Serial.write(&buffer[0], USB_PACKET_SIZE);
+  }
+  file.close();
+}
+
 FileBuffer::FileBuffer(int slot, int file) {
   char fileName[7];
   itoa(slot, fileName, 10);

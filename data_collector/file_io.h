@@ -11,6 +11,13 @@
 void setupSdCard();
 
 /**
+ * Sends the contents of the provided file back to the host over the USB 
+ * connection. Make sure to disable the task interrupt before using this for
+ * max speed.
+ */
+void sendFileOverUsb(int slot, int file);
+
+/**
  * This is a buffer which stores data to be written to a file. It gives flexible
  * control over when exactly the data is written. append() adds data to an 
  * internal buffer. writeSector() sends a chunk of data to the SD card, it

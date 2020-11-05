@@ -1,5 +1,14 @@
 # Data Collector
 
+## Commands that can be sent over USB:
+
+### 0F SS 
+
+Read the file at slot SS, index F. The different slots are used to hold
+different datalogs, and the F index is used to differentiate between different
+LODs. (index 15 is used to hold the json description of the datalog.) The Teensy
+first sends 8 bytes containing the size of the file, followed by relentlessly
+streaming the entire content of the file.
 
 ## Development Notes
 

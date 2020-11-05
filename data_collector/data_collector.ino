@@ -27,10 +27,12 @@ void setup() {
   setupSdCard();
   setupPins();
   FileBuffer test(23, 5);
+  Serial.begin(9600);
+  while (!Serial);
   startTaskTimer();
 
   int counter = 0;
-  while (counter < 1000) {
+  while (true) {
     if (multipleNewFramesError) {
       criticalError("ERROR: main loop took too long to read incoming data.");
     }
@@ -41,6 +43,7 @@ void setup() {
       test.append(constPtr, FRAME_SIZE);
       counter += 1;
       while (test.writeSector());
+      test.flushIfNeeded();
       nextUnreadFrameBufferIndex = (nextUnreadFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
     }
 
@@ -52,11 +55,12 @@ void setup() {
         while (!Serial.available());
         command[i] = Serial.read();
       }
-      uint8_t commandId == command[0] & 0xF0;
+      uint8_t commandId = command[0] & 0xF0;
       // Read file.
       if (commandId == 0x00) {
         int slotIndex = command[1];
         int fileIndex = command[0] & 0x0F;
+        sendFileOverUsb(slotIndex, fileIndex);
       }
       resumeTaskTimer();
     }
