@@ -21,7 +21,7 @@ void setupSdCard();
  */
 class FileBuffer {
 private:
-  RingBuffer<FILE_BUFFER_SIZE, char> data;
+  RingBuffer<FILE_BUFFER_SIZE, uint8_t> data;
   uint32_t numWritesSinceLastFlush;
   ExFile writeTo;
 public:
@@ -33,7 +33,7 @@ public:
   /**
    * Appends additional data to the buffer. len must be smaller than SIZE.
    */
-  void append(const char *data, uint32_t len);
+  void append(const uint8_t *data, uint32_t len);
   /**
    * Writes a sector of data to the file (if enough data is available to do so.)
    * Returns true if there is enough data to write another sector of data after

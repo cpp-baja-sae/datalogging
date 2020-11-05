@@ -19,6 +19,58 @@
 #define SD_SECTOR_SIZE 512
 #define FILE_BUFFER_SIZE (SD_SECTOR_SIZE * 16)
 
+// This lights up when there is an error.
+#define PIN_ONBOARD_LED 13
+// This pin goes high every time a step completes too late.
+#define PIN_ERROR 4
+
+// Chip select pin
+#define PIN_ADCS_CS 0
+// Serial clock pin
+#define PIN_ADCS_SCLK 1
+#define PIN_ADCS_RESET 2
+// Conversion start pin
+#define PIN_ADCS_CONVST 3
+// DOUTA and DOUTB pins for each ADC. These pin numbers are selected so every
+// pin can be read at once from GPIO6_DR (starting at bit 16)
+// LSB
+#define PIN_ADC0_DOUTA 19
+#define PIN_ADC0_DOUTB 18
+#define PIN_ADC1_DOUTA 14
+#define PIN_ADC1_DOUTB 15
+#define PIN_ADC2_DOUTA 40
+#define PIN_ADC2_DOUTB 41
+#define PIN_ADC3_DOUTA 17
+// MSB
+#define PIN_ADC3_DOUTB 16
+
+// Pauses execution of the program for a single clock cycle
+#define DELAY_CLOCK_CYCLE __asm__("nop\n")
+// Pauses execution of the program for 3 clock cycles. Our clock runs at 600MHz,
+// so this results in a 5ns delay.
+#define DELAY_5NS                                                              \
+  DELAY_CLOCK_CYCLE;                                                           \
+  DELAY_CLOCK_CYCLE;                                                           \
+  DELAY_CLOCK_CYCLE
+#define DELAY_10NS                                                             \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS
+#define DELAY_15NS                                                             \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS
+#define DELAY_20NS                                                             \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS
+#define DELAY_25NS                                                             \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS;                                                                   \
+  DELAY_5NS
+
 // When this is defined, ring buffers will trigger a critical error if they
 // overflow.
 #define DO_OVERFLOW_CHECKS

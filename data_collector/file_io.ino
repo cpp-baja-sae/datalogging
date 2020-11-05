@@ -60,7 +60,7 @@ FileBuffer::FileBuffer(int slot, int file) {
   this->numWritesSinceLastFlush = 0;
 }
 
-void FileBuffer::append(const char *data, uint32_t len) {
+void FileBuffer::append(const uint8_t *data, uint32_t len) {
   this->data.append(data, len);
 }
 

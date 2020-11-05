@@ -3,11 +3,11 @@
 void criticalError(const char *error) {
   Serial.begin(9600);
   while (!Serial);
-  pinMode(13, OUTPUT);
+  pinMode(PIN_ONBOARD_LED, OUTPUT);
   while (true) {
-    digitalWrite(13, HIGH);
+    digitalWrite(PIN_ONBOARD_LED, HIGH);
     delay(200);
-    digitalWrite(13, LOW);
+    digitalWrite(PIN_ONBOARD_LED, LOW);
     delay(200);
     Serial.println(error);
   }
