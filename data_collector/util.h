@@ -18,6 +18,9 @@
 // performance.
 #define SD_SECTOR_SIZE 512
 #define FILE_BUFFER_SIZE (SD_SECTOR_SIZE * 16)
+// Transmitting this many bytes at a time over the serial connection is the most
+// optimal rate possible.
+#define USB_PACKET_SIZE 64
 
 // This lights up when there is an error.
 #define PIN_ONBOARD_LED 13
