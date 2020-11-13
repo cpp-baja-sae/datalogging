@@ -8,7 +8,7 @@ const http = require('http');
 const path = require('path');
 const ws = require('ws');
 
-const ipc = require('./ipc');
+const collectorComms = require('./collectorComms');
 
 // Must not end with a slash.
 const data_dir = '/root/datalogs';
@@ -57,11 +57,8 @@ function frame_length_from_format(format) {
     let server = http.createServer(app);
     let ws_server = new ws.Server({ server });
 
-    console.log('Connecting to Crunch...');
-    let command_ipc = await ipc.connect_ipc();
-    let ipc_stream = await ipc.connect_stream();
-    const default_format 
-        = JSON.parse((await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, [])).toString('utf-8'));
+    // const default_format 
+    //     = JSON.parse((await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, [])).toString('utf-8'));
     // const frame_size = frame_length_from_format(default_format);
 
     console.log('Configuring web socket server...');
@@ -82,17 +79,17 @@ function frame_length_from_format(format) {
         });
     }, 10000);
 
-    ipc_stream.on('data', (data) => {
-        if (ws_server.clients.size === 0) {
-            // Don't bother if no one's connected.
-            // TODO: If everyone is disconnected, lower the sample rate?
-            return;
-        }
+    // ipc_stream.on('data', (data) => {
+    //     if (ws_server.clients.size === 0) {
+    //         // Don't bother if no one's connected.
+    //         // TODO: If everyone is disconnected, lower the sample rate?
+    //         return;
+    //     }
 
-        ws_server.clients.forEach(client => {
-            client.send(new Uint8Array(data));
-        });
-    });
+    //     ws_server.clients.forEach(client => {
+    //         client.send(new Uint8Array(data));
+    //     });
+    // });
 
     console.log('Configuring Express endpoints...');
 
@@ -340,6 +337,10 @@ function frame_length_from_format(format) {
 
     console.log('Initialization complete! Running server.');
 
-    server.listen(80);
+    server.listen(8080);
 
+});//();
+
+(async () => {
+    collectorComms.downloadFile(23, 5);
 })();

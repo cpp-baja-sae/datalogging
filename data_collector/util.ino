@@ -2,14 +2,13 @@
 
 void criticalError(const char *error) {
   Serial.begin(9600);
-  while (!Serial);
   pinMode(PIN_ONBOARD_LED, OUTPUT);
   while (true) {
     digitalWrite(PIN_ONBOARD_LED, HIGH);
     delay(200);
     digitalWrite(PIN_ONBOARD_LED, LOW);
     delay(200);
-    Serial.println(error);
+    if (Serial) Serial.println(error);
   }
 }
 

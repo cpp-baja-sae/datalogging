@@ -57,8 +57,8 @@ void sendFileOverUsb(int slot, int fileIndex) {
   if (size % USB_PACKET_SIZE != 0) {
     size -= size % USB_PACKET_SIZE;
   }
+  while (!Serial);
   Serial.write((char*) &size, 8);
-  Serial.println();
   Serial.flush();
   Serial.send_now();
   char buffer[USB_PACKET_SIZE];

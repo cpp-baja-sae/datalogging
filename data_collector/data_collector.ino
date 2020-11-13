@@ -37,7 +37,7 @@ void setup() {
       criticalError("ERROR: main loop took too long to read incoming data.");
     }
 
-    if (nextUnreadFrameBufferIndex != currentWipFrameBufferIndex) {
+    while (nextUnreadFrameBufferIndex != currentWipFrameBufferIndex) {
       auto *ptr = &frameBuffers[nextUnreadFrameBufferIndex][0];
       auto constPtr = const_cast<const uint8_t*>(ptr);
       test.append(constPtr, FRAME_SIZE);
