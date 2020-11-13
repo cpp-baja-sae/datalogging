@@ -5,6 +5,13 @@
 
 #include "util.h"
 
+// This file and file_io.ino are responsible for reading data from and writing
+// data to files. It is not responsible for taking raw data and formatting it
+// in multiple resolutions, that would be the responsibility of formatting.h and
+// formatting.ino. It contains a function to stream files over USB. It is
+// recommended to disable other interrupts while this function is running to
+// maximize speed.
+
 /**
  * This function must be called before any other file IO tasks are performed.
  */

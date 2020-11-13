@@ -1,0 +1,208 @@
+{
+    "version": 1,
+    "frame_time_us": 2000,
+    "total_num_lods": 8,
+    "lod_sample_interval": 4,
+    "layout": [
+        {
+            "group": "ADC 1",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 1",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 2",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 3",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 1",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 2",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 3",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 4",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 5",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 6",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 7",
+            "type": "snorm16"
+        },
+        {
+            "group": "ADC 4",
+            "name": "Channel 8",
+            "type": "snorm16"
+        },
+        {
+            "group": "Dummy",
+            "name": "A",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "B",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "C",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "D",
+            "type": "dummy64"
+        },
+        {
+            "group": "Dummy",
+            "name": "W",
+            "type": "dummy8"
+        },
+        {
+            "group": "Dummy",
+            "name": "X",
+            "type": "dummy8"
+        },
+        {
+            "group": "Diagnostics",
+            "name": "Error Count",
+            "type": "uint8"
+        },
+        {
+            "group": "Diagnostics",
+            "name": "Last Error Cause",
+            "type": "error_code"
+        }
+    ]
+}

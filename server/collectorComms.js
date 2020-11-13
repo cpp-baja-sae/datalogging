@@ -33,7 +33,7 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
     });
     writeStream.write(new Uint8Array([fileIndex & 0x0F | 0x00, slotIndex & 0xFF]));
     writeStream.removeAllListeners();
-    writeStream.close();
+    writeStream.destroy();
 
     try {
         await fsp.mkdir(DOWNLOAD_STORAGE);
@@ -89,8 +89,10 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
         });
         stream.removeAllListeners();
     }
-    stream.close();
-    downloadTarget.close();
+    stream.removeAllListeners();
+    downloadTarget.removeAllListeners();
+    stream.destroy();
+    downloadTarget.destroy();
     console.log('Download complete!');
     return filePath;
 }

@@ -1,6 +1,11 @@
 #ifndef TASKS_H_
 #define TASKS_H_
 
+// tasks.ino is responsible for recording data from sensors and placing it into
+// frameBuffers to be processed by the rest of the code. The idea is that the
+// interrupt should be allowed to run whenever possible such that data is
+// recorded at a regular interval.
+
 // This is set true when the task interrupt has written over data which was not
 // yet read outside the interrupt..
 extern volatile bool multipleNewFramesError;

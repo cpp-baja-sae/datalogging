@@ -1,15 +1,17 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-#define FRAME_SIZE 100
-#define TOTAL_NUM_LODS 8
-#define NUM_LOW_RES_LODS (TOTAL_NUM_LODS - 1)
-// A task can be executed every 100us, AKA 10kHz.
-#define TASK_INTERVAL_US 100
+#include "generated/config.h"
+
+// Contains miscellaneous code like settings and a ring buffer class. Some
+// settings are provided by generated/config.h as they are derived from
+// data_format.json.
+
 // After 20 tasks have been performed, a frame should be saved to a file buffer.
 // AKA 500Hz.
 #define TASKS_PER_FRAME 20
-#define FRAME_INTERVAL_US (TASK_INTERVAL_US * TASKS_PER_FRAME)
+// A task can be executed every 100us, AKA 10kHz.
+#define TASK_INTERVAL_US (FRAME_TIME_US / TASKS_PER_FRAME)
 // Frame buffers store data for the main loop to write to files. Increasing this
 // number allows the main loop to get caught up longer waiting for other things
 // to finish before attending to waiting data without losing data.
@@ -24,8 +26,6 @@
 
 // This lights up when there is an error.
 #define PIN_ONBOARD_LED 13
-// This pin goes high every time a step completes too late.
-#define PIN_ERROR 4
 
 // Chip select pin
 #define PIN_ADCS_CS 0

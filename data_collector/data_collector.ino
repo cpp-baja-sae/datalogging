@@ -1,5 +1,6 @@
 #include "file_io.h"
 #include "tasks.h"
+#include "serial_commands.h"
 #include "util.h"
 
 void setupOutputPin(const int pinNumber, const int value) {
@@ -47,23 +48,7 @@ void setup() {
       nextUnreadFrameBufferIndex = (nextUnreadFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
     }
 
-    // We have received a command over USB...
-    if (Serial.available()) {
-      pauseTaskTimer();
-      uint8_t command[2];
-      for (int i = 0; i < 2; i++) {
-        while (!Serial.available());
-        command[i] = Serial.read();
-      }
-      uint8_t commandId = command[0] & 0xF0;
-      // Read file.
-      if (commandId == 0x00) {
-        int slotIndex = command[1];
-        int fileIndex = command[0] & 0x0F;
-        sendFileOverUsb(slotIndex, fileIndex);
-      }
-      resumeTaskTimer();
-    }
+    handleWaitingCommands();
   }
 
   test.close();
