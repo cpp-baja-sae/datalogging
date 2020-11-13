@@ -23,17 +23,21 @@ function configureUsbPort() {
     });
 }
 
-// Downloads a file from the datalogger to a temporary location, returning the 
-// path it was downloaded to when complete.
-async function downloadFile(slotIndex, fileIndex, sizeCallback) {
-    configureUsbPort();
+async function sendCommand(command, arg1, arg2) {
     const writeStream = fs.createWriteStream(USB_PORT_PATH);
     await new Promise(res => {
         writeStream.on("ready", res);
     });
-    writeStream.write(new Uint8Array([fileIndex & 0x0F | 0x00, slotIndex & 0xFF]));
+    writeStream.write(new Uint8Array([command << 4 | arg1 & 0xF, arg2 & 0xFF]));
     writeStream.removeAllListeners();
     writeStream.destroy();
+}
+
+// Downloads a file from the datalogger to a temporary location, returning the 
+// path it was downloaded to when complete.
+async function downloadFile(slotIndex, fileIndex, sizeCallback) {
+    configureUsbPort();
+    await sendCommand(0x0, fileIndex, slotIndex);
 
     try {
         await fsp.mkdir(DOWNLOAD_STORAGE);
@@ -97,7 +101,37 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
     return filePath;
 }
 
+// Gets the JSON object describing the current format that the datalogger is
+// recording in.
+async function getDataFormat() {
+    configureUsbPort();
+    await sendCommand(1, 0, 0);
+
+    const stream = fs.createReadStream(USB_PORT_PATH);
+    let buffer = Buffer.alloc(0);
+    let expectedSize = 0;
+    await new Promise((res, rej) => {
+        stream.on("data", data => {
+            if (expectedSize === 0) {
+                // We are waiting to see how many bytes we need to read.
+                expectedSize = data.readUInt32LE();
+                data = data.subarray(4);
+            }
+            buffer = Buffer.concat([buffer, data]);
+            if (buffer.length > expectedSize) {
+                rej(new Error('Received more data than expected!'));
+            } else if (buffer.length === expectedSize) {
+                res();
+            }
+        });
+    });
+    stream.removeAllListeners();
+    stream.destroy();
+    return JSON.parse(buffer.toString('utf-8'));
+}
+
 module.exports = {
     downloadFile,
+    getDataFormat,
     METADATA_INDEX,
 };

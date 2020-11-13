@@ -9,4 +9,4 @@
  */
 void handleWaitingCommands();
 
-#endif /* SERIAL_COMMANDS_H_ *.
+#endif /* SERIAL_COMMANDS_H_ */

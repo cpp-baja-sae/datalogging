@@ -342,5 +342,5 @@ function frame_length_from_format(format) {
 });//();
 
 (async () => {
-    collectorComms.downloadFile(23, 5);
+    console.log(await collectorComms.getDataFormat());
 })();
