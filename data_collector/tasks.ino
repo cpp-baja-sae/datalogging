@@ -5,7 +5,7 @@ IntervalTimer taskTimer;
 
 volatile int currentTaskIndex = 0;
 volatile bool multipleNewFramesError = false;
-volatile uint8_t frameBuffers[NUM_FRAME_BUFFERS][FRAME_SIZE];
+volatile DataFrame frameBuffers[NUM_FRAME_BUFFERS];
 // Which framebuffer the interrupt is writing to and the next one that the main
 // loop will read from, respectively.
 volatile int currentWipFrameBufferIndex = 0, nextUnreadFrameBufferIndex = 0;
@@ -32,7 +32,7 @@ void startAdcRead() {
   digitalWriteFast(PIN_ADCS_CS, LOW);
 }
 
-void readAdcData(int channelOffset) {
+void readAdcData(int channel) {
   uint8_t bitReads[16];
   for (int bit = 15; bit >= 0; bit--) {
       DELAY_25NS;
@@ -51,24 +51,12 @@ void readAdcData(int channelOffset) {
       }
   }
 
-  auto dataTarget = &frameBuffers[currentWipFrameBufferIndex][channelOffset];
+  auto dataTarget = &frameBuffers[currentWipFrameBufferIndex];
 
-  dataTarget[0 + 0] = values[0] & 0xFF;
-  dataTarget[0 + 1] = values[0] >> 8;
-  dataTarget[0 + 8] = values[1] & 0xFF;
-  dataTarget[0 + 9] = values[1] >> 8;
-  dataTarget[16 + 0] = values[2] & 0xFF;
-  dataTarget[16 + 1] = values[2] >> 8;
-  dataTarget[16 + 8] = values[3] & 0xFF;
-  dataTarget[16 + 9] = values[3] >> 8;
-  dataTarget[32 + 0] = values[4] & 0xFF;
-  dataTarget[32 + 1] = values[4] >> 8;
-  dataTarget[32 + 8] = values[5] & 0xFF;
-  dataTarget[32 + 9] = values[5] >> 8;
-  dataTarget[48 + 0] = values[6] & 0xFF;
-  dataTarget[48 + 1] = values[6] >> 8;
-  dataTarget[48 + 8] = values[7] & 0xFF;
-  dataTarget[48 + 9] = values[7] >> 8;
+  for (uint32_t adc = 0; adc < 4; adc++) {
+    dataTarget->adcReadings[adc][channel] = values[adc * 2];
+    dataTarget->adcReadings[adc][channel + 4] = values[adc * 2 + 1];
+  }
 }
 
 void endAdcRead() {

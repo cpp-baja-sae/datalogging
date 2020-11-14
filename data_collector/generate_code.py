@@ -2,6 +2,7 @@
 
 # This file generates code depending on the contents of ../data_format.json
 
+import copy
 import json
 import math
 from pathlib import Path
@@ -79,8 +80,12 @@ data_types = {
 }
 
 format_description = open('data_format.json', 'r').read()
-escaped_format_description = format_description.replace('\n', '\\n').replace('"', '\\"')
 parsed_format = json.loads(format_description)
+format_description = copy.deepcopy(parsed_format)
+for key in range(len(parsed_format['layout'])):
+    del format_description['layout'][key]['cpp_value']
+format_description = json.dumps(format_description, indent=4)
+escaped_format_description = format_description.replace('\n', '\\n').replace('"', '\\"')
 
 total_size = 0
 for data_item in parsed_format['layout']:
@@ -90,17 +95,6 @@ for data_item in parsed_format['layout']:
         exit(1)
     data_type = data_types[data_type]
     total_size += data_type['size']
-step_interval = parsed_format['frame_time_us'] / total_size
-if (step_interval % 1.0 > 0.001):
-    print(
-        'ERROR: Frame time (' 
-        + str(parsed_format['frame_time_us']) 
-        + 'us) does not evenly divide into the length of a frame (' 
-        + str(total_size) 
-        + ' bytes). This must be fixed to ensure timing is correct.'
-    )
-    exit(1)
-step_interval = int(step_interval)
 
 config_content = '\n'.join([
     '// Do not make changes to this file, it was auto-generated based on the contents',
@@ -130,7 +124,6 @@ config_content = '\n'.join([
 
 
 def make_buffer_code(piece_maker):
-    current_offset = 0
     output = ''
     for data_item in parsed_format['layout']:
         data_type = data_item['type']
@@ -139,10 +132,9 @@ def make_buffer_code(piece_maker):
             exit(1)
         data_type = data_types[data_type]
         def make_accessor(base): 
-            return '*reinterpret_cast<' + data_type['ctype'] + '*>(' + base + ' + ' + str(current_offset) + ')'
+            return base + '.' + data_item['cpp_value']
         hr_name = data_item['group'] + ' -> ' + data_item['name']
         output += piece_maker(make_accessor, data_type, hr_name) + '\n'
-        current_offset += data_type['size']
     return output
 
 
@@ -224,15 +216,15 @@ data_ops_content = '\n'.join([
     '        }',
     '    }',
     '    // Write new values to the file buffer.',
-    '    thisLod->fileBuffer.append(thisLod->minBuffer, FRAME_SIZE);',
-    '    thisLod->fileBuffer.append(thisLod->maxBuffer, FRAME_SIZE);',
-    '    thisLod->fileBuffer.append(thisLod->avgBuffer, FRAME_SIZE);',
+    '    thisLod->fileBuffer.append(thisLod->minBuffer);',
+    '    thisLod->fileBuffer.append(thisLod->maxBuffer);',
+    '    thisLod->fileBuffer.append(thisLod->avgBuffer);',
     '    // Reset the buffer to a state where new values can be written to it.',
     '    resetLodBuffer(lodIndex);',
     '}',
     '',
     '// Call this to incorporate the given data into all the LOD buffers.',
-    'void updateLods(char *incomingData) {',
+    'void updateLods(DataFrame &incomingData) {',
     '    // Update the first LOD with the new data...',
     make_buffer_code(make_update_first_lod_code),
     '    lodBuffers[0].progress += 1;',

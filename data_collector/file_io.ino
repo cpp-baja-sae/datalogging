@@ -88,11 +88,12 @@ FileBuffer::FileBuffer(int slot, int file) {
   this->numWritesSinceLastFlush = 0;
 }
 
-void FileBuffer::append(const uint8_t *data, uint32_t len) {
+void FileBuffer::append(const DataFrame &data) {
   if (this->discardData) {
     return;
   }
-  this->data.append(data, len);
+  auto dataPtr = reinterpret_cast<const char*>(&data);
+  this->data.append(dataPtr, FRAME_SIZE);
 }
 
 bool FileBuffer::writeSector() {

@@ -12,6 +12,8 @@
 // recommended to disable other interrupts while this function is running to
 // maximize speed.
 
+struct DataFrame;
+
 /**
  * This function must be called before any other file IO tasks are performed.
  */
@@ -35,7 +37,7 @@ void sendFileOverUsb(int slot, int file);
  */
 class FileBuffer {
 private:
-  RingBuffer<FILE_BUFFER_SIZE, uint8_t> data;
+  RingBuffer<FILE_BUFFER_SIZE, char> data;
   uint32_t numWritesSinceLastFlush;
   ExFile writeTo;
   // Set to true to throw away appended data. This should be true if a file
@@ -52,9 +54,9 @@ public:
    */
   FileBuffer(int slot, int file);
   /**
-   * Appends additional data to the buffer. len must be smaller than SIZE.
+   * Appends additional data to the buffer.
    */
-  void append(const uint8_t *data, uint32_t len);
+  void append(const DataFrame &frame);
   /**
    * Writes a sector of data to the file (if enough data is available to do so.)
    * Returns true if there is enough data to write another sector of data after

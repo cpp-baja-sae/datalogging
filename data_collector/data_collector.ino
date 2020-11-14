@@ -39,9 +39,9 @@ void setup() {
     }
 
     while (nextUnreadFrameBufferIndex != currentWipFrameBufferIndex) {
-      auto *ptr = &frameBuffers[nextUnreadFrameBufferIndex][0];
-      auto constPtr = const_cast<const uint8_t*>(ptr);
-      test.append(constPtr, FRAME_SIZE);
+      auto &nextFrame = frameBuffers[nextUnreadFrameBufferIndex];
+      auto constRef = const_cast<const DataFrame&>(nextFrame);
+      test.append(constRef);
       counter += 1;
       while (test.writeSector());
       test.flushIfNeeded();

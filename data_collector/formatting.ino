@@ -1,12 +1,11 @@
 #include "generated/config.h"
 #include "file_io.h"
 #include "formatting.h"
+#include "tasks.h"
 #include "util.h"
 
 struct LodBuffer {
-    uint8_t minBuffer[FRAME_SIZE];
-    uint8_t maxBuffer[FRAME_SIZE];
-    uint8_t avgBuffer[FRAME_SIZE];
+    DataFrame minBuffer, maxBuffer, avgBuffer;
     // How many samples have accumulated in this buffer so far.
     int progress;
     // Whether or not the file buffer should be written to.
