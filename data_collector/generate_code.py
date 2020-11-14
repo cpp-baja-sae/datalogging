@@ -138,8 +138,8 @@ def make_buffer_code(piece_maker):
             print('ERROR: ' + data_item['type'] + ' is not a valid data type.')
             exit(1)
         data_type = data_types[data_type]
-        def make_accessor(
-            base): return '*((' + data_type['ctype'] + '*) ((' + base + ') + ' + str(current_offset) + '))'
+        def make_accessor(base): 
+            return '*reinterpret_cast<' + data_type['ctype'] + '*>(' + base + ' + ' + str(current_offset) + ')'
         hr_name = data_item['group'] + ' -> ' + data_item['name']
         output += piece_maker(make_accessor, data_type, hr_name) + '\n'
         current_offset += data_type['size']
@@ -149,25 +149,25 @@ def make_buffer_code(piece_maker):
 def make_reset_code(make_accessor, current_data_type, hr_name):
     return '\n'.join([
         '    // ' + hr_name,
-        '    ' + make_accessor('lod_infos[lod_index].min_buffer') +
+        '    ' + make_accessor('lodBuffers[lodIndex].minBuffer') +
         ' = ' + current_data_type['default_min'] + ';',
-        '    ' + make_accessor('lod_infos[lod_index].max_buffer') +
+        '    ' + make_accessor('lodBuffers[lodIndex].maxBuffer') +
         ' = ' + current_data_type['default_max'] + ';',
-        '    ' + make_accessor('lod_infos[lod_index].avg_buffer') +
+        '    ' + make_accessor('lodBuffers[lodIndex].avgBuffer') +
         ' = ' + current_data_type['default_avg'] + ';',
     ])
 
 
 def make_propogate_lod_code(make_accessor, current_data_type, hr_name):
     min_line = current_data_type['update_min'] \
-        .replace('$OLD', make_accessor('next_lod->min_buffer')) \
-        .replace('$NEW', make_accessor('this_lod->min_buffer'))
+        .replace('$OLD', make_accessor('nextLod->minBuffer')) \
+        .replace('$NEW', make_accessor('thisLod->minBuffer'))
     max_line = current_data_type['update_max'] \
-        .replace('$OLD', make_accessor('next_lod->max_buffer')) \
-        .replace('$NEW', make_accessor('this_lod->max_buffer'))
+        .replace('$OLD', make_accessor('nextLod->maxBuffer')) \
+        .replace('$NEW', make_accessor('thisLod->maxBuffer'))
     avg_line = current_data_type['update_avg'] \
-        .replace('$OLD', make_accessor('next_lod->avg_buffer')) \
-        .replace('$NEW', make_accessor('this_lod->avg_buffer'))
+        .replace('$OLD', make_accessor('nextLod->avgBuffer')) \
+        .replace('$NEW', make_accessor('thisLod->avgBuffer'))
     return '\n'.join([
         '        // ' + hr_name,
         '        ' + min_line,
@@ -178,14 +178,14 @@ def make_propogate_lod_code(make_accessor, current_data_type, hr_name):
 
 def make_update_first_lod_code(make_accessor, current_data_type, hr_name):
     min_line = current_data_type['update_min'] \
-        .replace('$OLD', make_accessor('lod_infos[0].min_buffer')) \
-        .replace('$NEW', make_accessor('incoming_data'))
+        .replace('$OLD', make_accessor('lodBuffers[0].minBuffer')) \
+        .replace('$NEW', make_accessor('incomingData'))
     max_line = current_data_type['update_max'] \
-        .replace('$OLD', make_accessor('lod_infos[0].max_buffer')) \
-        .replace('$NEW', make_accessor('incoming_data'))
+        .replace('$OLD', make_accessor('lodBuffers[0].maxBuffer')) \
+        .replace('$NEW', make_accessor('incomingData'))
     avg_line = current_data_type['update_avg'] \
-        .replace('$OLD', make_accessor('lod_infos[0].avg_buffer')) \
-        .replace('$NEW', make_accessor('incoming_data'))
+        .replace('$OLD', make_accessor('lodBuffers[0].avgBuffer')) \
+        .replace('$NEW', make_accessor('incomingData'))
     return '\n'.join([
         '    // ' + hr_name,
         '    ' + min_line,
@@ -202,53 +202,45 @@ data_ops_content = '\n'.join([
     '#include <stdint.h>',
     '#include <string.h>',
     '',
-    'void reset_lod_buffer(int lod_index) {',
-    '    lod_infos[lod_index].progress = 0;',
+    '// Resets an LOD buffer as if it had never had any data written to it.',
+    'void resetLodBuffer(int lodIndex) {',
+    '    lodBuffers[lodIndex].progress = 0;',
     make_buffer_code(make_reset_code),
     '}',
     '',
-    'void commit_lod(int lod_index) {',
-    '    volatile struct LodInfo *this_lod = &lod_infos[lod_index];',
+    '// Called when an LOD buffer becomes full. It propogates the recorded values',
+    '// to the next highest LOD (if one exists), saves the contents into the ',
+    '// appropriate file buffer, and clears the original buffer. so that more ',
+    '// data can be written to it.',
+    'void commitLod(int lodIndex) {',
+    '    LodBuffer *thisLod = &lodBuffers[lodIndex];',
     '    // If this is not the highest-level LOD, then update the next LOD\'s min, max, and avg.',
-    '    if (lod_index < NUM_AUX_LODS - 1) {',
-    '        volatile struct LodInfo *next_lod = &lod_infos[lod_index + 1];',
+    '    if (lodIndex < NUM_LOW_RES_LODS - 1) {',
+    '        LodBuffer *nextLod = &lodBuffers[lodIndex + 1];',
     make_buffer_code(make_propogate_lod_code),
-    '        next_lod->progress += 1;',
-    '        if (next_lod->progress == LOD_SAMPLE_INTERVAL) {',
-    '            commit_lod(lod_index + 1);',
+    '        nextLod->progress += 1;',
+    '        if (nextLod->progress == LOD_SAMPLE_INTERVAL) {',
+    '            commitLod(lodIndex + 1);',
     '        }',
     '    }',
     '    // Write new values to the file buffer.',
-    '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index],',
-    '        this_lod->min_buffer,',
-    '        FRAME_SIZE',
-    '    );',
-    '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index + FRAME_SIZE],',
-    '        this_lod->max_buffer,',
-    '        FRAME_SIZE',
-    '    );',
-    '    memcpy(',
-    '        &this_lod->file_buffer[this_lod->fbuf_write_index + 2 * FRAME_SIZE],',
-    '        this_lod->avg_buffer,',
-    '        FRAME_SIZE',
-    '    );',
-    '    this_lod->fbuf_write_index = (this_lod->fbuf_write_index + 3 * FRAME_SIZE) % FILE_BUFFER_SIZE;',
+    '    thisLod->fileBuffer.append(thisLod->minBuffer, FRAME_SIZE);',
+    '    thisLod->fileBuffer.append(thisLod->maxBuffer, FRAME_SIZE);',
+    '    thisLod->fileBuffer.append(thisLod->avgBuffer, FRAME_SIZE);',
     '    // Reset the buffer to a state where new values can be written to it.',
-    '    reset_lod_buffer(lod_index);',
+    '    resetLodBuffer(lodIndex);',
     '}',
     '',
-    'void update_lods() {',
+    '// Call this to incorporate the given data into all the LOD buffers.',
+    'void updateLods(char *incomingData) {',
     '    // Update the first LOD with the new data...',
-    '    volatile char *incoming_data = &primary_file_buffer[pbuf_write_index];',
     make_buffer_code(make_update_first_lod_code),
-    '    lod_infos[0].progress += 1;',
+    '    lodBuffers[0].progress += 1;',
     '    // If we have written enough samples to the first LOD...',
-    '    if (lod_infos[0].progress == LOD_SAMPLE_INTERVAL) {',
+    '    if (lodBuffers[0].progress == LOD_SAMPLE_INTERVAL) {',
     '        // Save the parsed_formatrmation and propogate it up to higher LODs',
     '        // as necessary.',
-    '        commit_lod(0);',
+    '        commitLod(0);',
     '    }',
     '}',
     '',

@@ -38,7 +38,14 @@ private:
   RingBuffer<FILE_BUFFER_SIZE, uint8_t> data;
   uint32_t numWritesSinceLastFlush;
   ExFile writeTo;
+  // Set to true to throw away appended data. This should be true if a file
+  // hasn't been opened yet.
+  bool discardData;
 public:
+  /**
+   * Creates a file buffer which does not write any of the data it receives.
+   */
+  FileBuffer();
   /**
    * Creates a file buffer which will write data to the specified file in the 
    * specified datalog slot.

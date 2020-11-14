@@ -50,6 +50,11 @@ T *RingBuffer<SIZE, T>::read(uint32_t len) {
 }
 
 template<int SIZE, typename T>
+void RingBuffer<SIZE, T>::markAllDataAsRead() {
+  this->readIndex = this->writeIndex;
+}
+
+template<int SIZE, typename T>
 uint32_t RingBuffer<SIZE, T>::unreadLen() {
   if (this->writeIndex >= this->readIndex) {
     // The write pointer has not looped around the end of the buffer compared to 

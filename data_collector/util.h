@@ -104,6 +104,10 @@ public:
    * read(2).
    */
   T *read(uint32_t len);
+  /**
+   * Moves the read pointer so that unreadLen() becomes zero.
+   */
+  void markAllDataAsRead();
   /** 
    * Returns how many bytes have been appended that have not yet been read.
    */

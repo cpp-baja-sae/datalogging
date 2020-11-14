@@ -69,7 +69,12 @@ void sendFileOverUsb(int slot, int fileIndex) {
   file.close();
 }
 
+FileBuffer::FileBuffer() {
+  this->discardData = true;
+}
+
 FileBuffer::FileBuffer(int slot, int file) {
+  this->discardData = false;
   char fileName[7];
   itoa(slot, fileName, 10);
   globalSd.mkdir(fileName);
@@ -84,6 +89,9 @@ FileBuffer::FileBuffer(int slot, int file) {
 }
 
 void FileBuffer::append(const uint8_t *data, uint32_t len) {
+  if (this->discardData) {
+    return;
+  }
   this->data.append(data, len);
 }
 
