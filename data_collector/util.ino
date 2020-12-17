@@ -12,6 +12,10 @@ void criticalError(const char *error) {
   }
 }
 
+void setOnboardLed(const bool shouldBeOn) {
+  digitalWrite(PIN_ONBOARD_LED, shouldBeOn ? HIGH : LOW);
+}
+
 template<int SIZE, typename T>
 void RingBuffer<SIZE, T>::appendContinuous(const T *data, uint32_t len) {
   T *writeTo = &this->data[this->writeIndex];

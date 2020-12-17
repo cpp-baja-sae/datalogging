@@ -6,6 +6,8 @@ const USB_PORT_PATH = '/dev/ttyACM0';
 const METADATA_INDEX = 15;
 const DOWNLOAD_STORAGE = '/tmp/datalogging_downloads/';
 
+// Call this *after* opening the USB port, see:
+// https://unix.stackexchange.com/questions/242778/what-is-the-easiest-way-to-configure-serial-port-on-linux
 function configureUsbPort() {
     const command = 'stty '
         + '-F ' + USB_PORT_PATH + ' '
@@ -25,6 +27,7 @@ function configureUsbPort() {
 
 async function sendCommand(command, arg1, arg2) {
     const writeStream = fs.createWriteStream(USB_PORT_PATH);
+    configureUsbPort();
     await new Promise(res => {
         writeStream.on("ready", res);
     });
@@ -104,12 +107,19 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
 // Gets the JSON object describing the current format that the datalogger is
 // recording in.
 async function getDataFormat() {
-    configureUsbPort();
     await sendCommand(1, 0, 0);
+    console.log('1');
 
     const stream = fs.createReadStream(USB_PORT_PATH);
+    console.log('2');
+    configureUsbPort();
+    console.log('3');
     let buffer = Buffer.alloc(0);
+    console.log('4');
     let expectedSize = 0;
+    console.log('5');
+    stream.on('error', console.error);
+    console.log('6');
     await new Promise((res, rej) => {
         stream.on("data", data => {
             if (expectedSize === 0) {
@@ -118,15 +128,17 @@ async function getDataFormat() {
                 data = data.subarray(4);
             }
             buffer = Buffer.concat([buffer, data]);
+            console.log(`Got ${buffer.length} of ${expectedSize} bytes.`);
             if (buffer.length > expectedSize) {
                 rej(new Error('Received more data than expected!'));
             } else if (buffer.length === expectedSize) {
+                // For some reason this has to be *inside* the event handler or
+                // the server will hang when trying to exit.
+                stream.close();
                 res();
             }
         });
     });
-    stream.removeAllListeners();
-    stream.destroy();
     return JSON.parse(buffer.toString('utf-8'));
 }
 

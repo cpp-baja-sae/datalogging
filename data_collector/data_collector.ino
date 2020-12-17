@@ -27,31 +27,15 @@ void setupPins() {
 void setup() {
   setupSdCard();
   setupPins();
-  FileBuffer test(23, 5);
+  initialFormattingSetup();
   Serial.begin(9600);
   while (!Serial);
   startTaskTimer();
 
-  int counter = 0;
   while (true) {
-    if (multipleNewFramesError) {
-      criticalError("ERROR: main loop took too long to read incoming data.");
-    }
-
-    while (nextUnreadFrameBufferIndex != currentWipFrameBufferIndex) {
-      auto &nextFrame = frameBuffers[nextUnreadFrameBufferIndex];
-      auto constRef = const_cast<const DataFrame&>(nextFrame);
-      test.append(constRef);
-      counter += 1;
-      while (test.writeSector());
-      test.flushIfNeeded();
-      nextUnreadFrameBufferIndex = (nextUnreadFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
-    }
-
+    handleNewData();
     handleWaitingCommands();
   }
-
-  test.close();
 
   criticalError("Nothing else to do.");
 }

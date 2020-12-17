@@ -25,11 +25,8 @@ void handleWaitingCommands() {
       // problems on our hand, pun intended.
       uint32_t size = DEFAULT_FORMAT_SIZE;
       Serial.write((char*) &size, 4);
-      Serial.flush();
-      Serial.send_now();
-      Serial.write(DEFAULT_FORMAT_CONTENT);
-      Serial.flush();
-      Serial.send_now();
+      char data[] = DEFAULT_FORMAT_CONTENT;
+      Serial.write(&data[0], DEFAULT_FORMAT_SIZE);
     }
   }
 }

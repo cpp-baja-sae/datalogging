@@ -83,6 +83,10 @@
  * repeatedly be printed to any serial monitor which is listening over the USB port.
  */
 void criticalError(const char *error);
+/**
+ * Turns on or off the onboard LED, useful for debugging when the serial console is occupied.
+ */
+void setOnboardLed(const bool shouldBeOn);
 
 template<int SIZE, typename T>
 class RingBuffer {

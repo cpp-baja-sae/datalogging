@@ -23,6 +23,16 @@ void makeFilePath(char *buffer, int slotIndex, int fileIndex) {
   itoa(fileIndex, buffer + firstPartLen + 1, 10);
 }
 
+ExFile clearAndOpenFileForWriting(int slotIndex, int fileIndex) {
+  char fileName[7];
+  itoa(slotIndex, fileName, 10);
+  globalSd.mkdir(fileName);
+  makeFilePath(fileName, slotIndex, fileIndex);
+  // Delete any existing file data so that we're only writing new data.
+  globalSd.remove(fileName);
+  return globalSd.open(fileName, FILE_WRITE);
+}
+
 void setupSdCard() {
   if (!globalSd.begin(SdioConfig(FIFO_SDIO))) {
     criticalError("Failed to set up SD card.");
@@ -46,6 +56,15 @@ void setupSdCard() {
   }
 }
 
+void saveDataFormat(int slot, int fileIndex) {
+  ExFile file = clearAndOpenFileForWriting(slot, fileIndex);
+  if (!file) {
+    criticalError("Cannot save data format, failed to open file.");
+  }
+  file.write(DEFAULT_FORMAT_CONTENT, DEFAULT_FORMAT_SIZE);
+  file.close();
+}
+
 void sendFileOverUsb(int slot, int fileIndex) {
   char fileName[7];
   makeFilePath(fileName, slot, fileIndex);
@@ -54,9 +73,7 @@ void sendFileOverUsb(int slot, int fileIndex) {
     criticalError("Cannot send file over USB, failed to open file.");
   }
   uint64_t size = file.size();
-  if (size % USB_PACKET_SIZE != 0) {
-    size -= size % USB_PACKET_SIZE;
-  }
+  uint64_t lastPacketSize = size % USB_PACKET_SIZE;
   while (!Serial);
   Serial.write((char*) &size, 8);
   Serial.flush();
@@ -65,6 +82,10 @@ void sendFileOverUsb(int slot, int fileIndex) {
   for (uint64_t p = 0; p < size / USB_PACKET_SIZE; p++) {
     file.read(&buffer[0], USB_PACKET_SIZE);
     Serial.write(&buffer[0], USB_PACKET_SIZE);
+  }
+  if (lastPacketSize > 0) {
+    file.read(&buffer[0], lastPacketSize);
+    Serial.write(&buffer[0], lastPacketSize);
   }
   file.close();
 }
@@ -75,13 +96,7 @@ FileBuffer::FileBuffer() {
 
 FileBuffer::FileBuffer(int slot, int file) {
   this->discardData = false;
-  char fileName[7];
-  itoa(slot, fileName, 10);
-  globalSd.mkdir(fileName);
-  makeFilePath(fileName, slot, file);
-  // Delete any existing file data so that we're only writing new data.
-  globalSd.remove(fileName);
-  this->writeTo = globalSd.open(fileName, FILE_WRITE);
+  this->writeTo = clearAndOpenFileForWriting(slot, file);
   if (!this->writeTo) {
     criticalError("Failed to open file for file buffer.");
   }

@@ -20,6 +20,12 @@ struct DataFrame;
 void setupSdCard();
 
 /**
+ * This function writes the contents of data_format.json (provided in 
+ * DEFAULT_FORMAT_CONTENT from generated/config.h) to the provided file.
+ */
+void saveDataFormat(int slot, int file);
+
+/**
  * Sends the contents of the provided file back to the host over the USB 
  * connection. Make sure to disable the task interrupt before using this for
  * max speed.
