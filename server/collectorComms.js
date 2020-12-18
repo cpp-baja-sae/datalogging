@@ -1,45 +1,41 @@
 const { exec } = require('child_process');
 const fs = require('fs');
 const fsp = require('fs').promises;
+const SerialPort = require('serialport');
 
 const USB_PORT_PATH = '/dev/ttyACM0';
 const METADATA_INDEX = 15;
 const DOWNLOAD_STORAGE = '/tmp/datalogging_downloads/';
 
-// Call this *after* opening the USB port, see:
-// https://unix.stackexchange.com/questions/242778/what-is-the-easiest-way-to-configure-serial-port-on-linux
-function configureUsbPort() {
-    const command = 'stty '
-        + '-F ' + USB_PORT_PATH + ' '
-        + 'cs8 9600 '
-        + 'ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten '
-        + '-echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts ';
-    exec(command, (error, _stdout, stderr) => {
-        if (error) {
-            console.error('Failed to set up USB connection: ' + error);
-            throw new Error('Failed to set up USB connection.');
-        } else if (stderr) {
-            console.error('Failed to set up USB connection: ' + stderr);
-            throw new Error('Failed to set up USB connection.');
-        }
+function openUsbPort() {
+    const usb = new SerialPort(USB_PORT_PATH, {
+        autoOpen: true,
+        baudRate: 9600,
+        dataBits: 8,
+        stopBits: 1,
+        parity: 'none',
+        lock: false,
     });
+    usb.on('error', console.error);
+    usb.awaitEvent = async (eventName) => {
+        return new Promise(res => {
+            usb.once(eventName, res);
+        });
+    };
+    return usb;
 }
 
 async function sendCommand(command, arg1, arg2) {
-    const writeStream = fs.createWriteStream(USB_PORT_PATH);
-    configureUsbPort();
-    await new Promise(res => {
-        writeStream.on("ready", res);
-    });
-    writeStream.write(new Uint8Array([command << 4 | arg1 & 0xF, arg2 & 0xFF]));
-    writeStream.removeAllListeners();
-    writeStream.destroy();
+    const usb = openUsbPort();
+    usb.write(new Uint8Array([command << 4 | arg1 & 0xF, arg2 & 0xFF]));
+    usb.end();
+    await usb.awaitEvent('finish');
+    usb.close();
 }
 
 // Downloads a file from the datalogger to a temporary location, returning the 
 // path it was downloaded to when complete.
 async function downloadFile(slotIndex, fileIndex, sizeCallback) {
-    configureUsbPort();
     await sendCommand(0x0, fileIndex, slotIndex);
 
     try {
@@ -55,11 +51,11 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
     }
     const downloadTarget = fs.createWriteStream(filePath);
 
-    const stream = fs.createReadStream(USB_PORT_PATH);
+    const usb = openUsbPort();
     // The size of the file should be transmitted in a single packet.
     const size = await new Promise((res, rej) => {
-        stream.on("data", data => {
-            stream.removeAllListeners();
+        usb.on("data", data => {
+            usb.removeAllListeners();
             if (data.length >= 8) {
                 // My version of NodeJS doesn't have readBigUInt64LE.
                 // This comes with the problem that numbers over 2^53-1 won't
@@ -85,21 +81,20 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
     if (size > 0) {
         await new Promise((res, rej) => {
             let remaining = size;
-            stream.on("data", data => {
+            usb.on('data', data => {
                 downloadTarget.write(data);
                 remaining -= data.length;
-                if (remaining === 0) res();
+                if (remaining === 0) {
+                    usb.close();
+                    res();
+                }
                 if (remaining < 0) {
                     throw new Error('Received more data than expected!');
                 }
             });
         });
-        stream.removeAllListeners();
     }
-    stream.removeAllListeners();
-    downloadTarget.removeAllListeners();
-    stream.destroy();
-    downloadTarget.destroy();
+    downloadTarget.close();
     console.log('Download complete!');
     return filePath;
 }
@@ -108,20 +103,13 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
 // recording in.
 async function getDataFormat() {
     await sendCommand(1, 0, 0);
-    console.log('1');
 
-    const stream = fs.createReadStream(USB_PORT_PATH);
-    console.log('2');
-    configureUsbPort();
-    console.log('3');
+    const usb = openUsbPort();
     let buffer = Buffer.alloc(0);
-    console.log('4');
     let expectedSize = 0;
-    console.log('5');
-    stream.on('error', console.error);
-    console.log('6');
+    usb.on('error', console.error);
     await new Promise((res, rej) => {
-        stream.on("data", data => {
+        usb.on('data', data => {
             if (expectedSize === 0) {
                 // We are waiting to see how many bytes we need to read.
                 expectedSize = data.readUInt32LE();
@@ -134,7 +122,7 @@ async function getDataFormat() {
             } else if (buffer.length === expectedSize) {
                 // For some reason this has to be *inside* the event handler or
                 // the server will hang when trying to exit.
-                stream.close();
+                usb.close();
                 res();
             }
         });
