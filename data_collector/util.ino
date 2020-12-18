@@ -20,11 +20,7 @@ template<int SIZE, typename T>
 void RingBuffer<SIZE, T>::appendContinuous(const T *data, uint32_t len) {
   T *writeTo = &this->data[this->writeIndex];
   this->writeIndex = (this->writeIndex + len) % SIZE;
-  for (; len > 0; len--) {
-    *writeTo = *data;
-    data++;
-    writeTo++;
-  }
+  memcpy(writeTo, data, len * sizeof(T));
 }
 
 template<int SIZE, typename T>
