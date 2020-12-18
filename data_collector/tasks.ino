@@ -80,7 +80,7 @@ void triggerAdcs() {
 void taskInterrupt() {
   if (currentTaskIndex == 0) startAdcRead();
   if (currentTaskIndex < 4) {
-    readAdcData(currentTaskIndex * 2);
+    readAdcData(currentTaskIndex);
   }
   if (currentTaskIndex == 4) {
     endAdcRead();
@@ -90,8 +90,10 @@ void taskInterrupt() {
   currentTaskIndex += 1;
   if (currentTaskIndex == TASKS_PER_FRAME) {
     currentWipFrameBufferIndex = (currentWipFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
-    if (currentWipFrameBufferIndex == nextUnreadFrameBufferIndex) {
-      // We just wrote over a frame the main loop did not read yet.
+    // We can't do this test on currentWip == nextUnread because that is also the case when the 
+    // main loop has read everything we have written.
+    if (currentWipFrameBufferIndex + 1 == nextUnreadFrameBufferIndex) {
+      // We are about to overwrite a frame that the main loop hasn't read yet.
       multipleNewFramesError = true;
     }
     currentTaskIndex = 0;

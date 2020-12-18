@@ -1,6 +1,8 @@
 #ifndef TASKS_H_
 #define TASKS_H_
 
+#include "util.h"
+
 // tasks.ino is responsible for recording data from sensors and placing it into
 // frameBuffers to be processed by the rest of the code. The idea is that the
 // interrupt should be allowed to run whenever possible such that data is

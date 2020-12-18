@@ -77,6 +77,9 @@
 // When this is defined, ring buffers will trigger a critical error if they
 // overflow.
 #define DO_OVERFLOW_CHECKS
+// When this is defined, ring buffers will trigger a critical error if they are
+// read past their end.
+#define DO_ALIGNMENT_CHECKS
 
 /**
  * Causes the program to stop running, the onboard LED to flash, and the provided error message to

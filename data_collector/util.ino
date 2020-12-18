@@ -44,6 +44,11 @@ void RingBuffer<SIZE, T>::append(const T *data, uint32_t len) {
 
 template<int SIZE, typename T>
 T *RingBuffer<SIZE, T>::read(uint32_t len) {
+  #ifdef DO_ALIGNMENT_CHECKS
+  if (this->readIndex + len > SIZE) {
+    criticalError("Ring buffer read with incorrect alignment.");
+  }
+  #endif
   T *retVal = &this->data[readIndex];
   this->readIndex = (this->readIndex + len) % SIZE;
   return retVal;
