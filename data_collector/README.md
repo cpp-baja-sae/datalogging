@@ -10,6 +10,12 @@ LODs. (index 15 is used to hold the json description of the datalog.) The Teensy
 first sends 8 bytes containing the size of the file, followed by relentlessly
 streaming the entire content of the file.
 
+### 10 00
+
+Read the data format. Returns 4 bytes containing how many bytes long the data
+format description is, followed by that description. This file is stored as 
+file 15 (0xF) of every datalog slot.
+
 ## Development Notes
 
 This program is intended to be used with the Arduino IDE. It also requires
@@ -35,3 +41,10 @@ https://forum.pjrc.com/threads/61289-Question-on-the-correct-usage-of-the-SD-Car
 The SD card should be formatted as ExFAT so that it can store files over 2GB in
 size.
 
+## Misc. Notes
+Learn from my past mistakes.
+
+- The Teensy can freeze up mysteriously if you try to access out-of-bounds memory.
+- The SD card can become corrupted for any number of reasons, most recently
+  because a file was opened twice at the same time, one time for writing and 
+  another for reading. Reformatting the SD card fixed this.

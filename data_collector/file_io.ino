@@ -29,10 +29,13 @@ ExFile clearAndOpenFileForWriting(int slotIndex, int fileIndex) {
   globalSd.mkdir(fileName);
   makeFilePath(fileName, slotIndex, fileIndex);
   // Delete any existing file data so that we're only writing new data.
-  globalSd.remove(fileName);
-  globalSd.remove(fileName);
-  globalSd.remove(fileName);
-  return globalSd.open(fileName, FILE_WRITE);
+  auto file = globalSd.open(fileName, O_WRITE | O_CREAT | O_TRUNC);
+  if (file.fileSize() != 0) {
+    char error[] = "Cleared file is not empty! /xxx/xx ";
+    memcpy(&error[28], fileName, 7);
+    criticalError(error);
+  }
+  return file;
 }
 
 void setupSdCard() {
@@ -65,6 +68,14 @@ void saveDataFormat(int slot, int fileIndex) {
   }
   file.write(DEFAULT_FORMAT_CONTENT, DEFAULT_FORMAT_SIZE);
   file.close();
+}
+
+void deleteSlot(int slot) {
+  char fileName[7];
+  for (int i = 0; i < 16; i++) {
+    makeFilePath(fileName, slot, i);
+    globalSd.remove(fileName);
+  }
 }
 
 void sendFileOverUsb(int slot, int fileIndex) {

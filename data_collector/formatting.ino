@@ -108,6 +108,7 @@ void onNewData(DataFrame &frame) {
 
 void beginNewDatalog(int slot) {
   if (fileBuffersOpen) endCurrentDatalog();
+  deleteSlot(slot);
   saveDataFormat(slot, 15);
   highResFileBuffer = FileBuffer(slot, 0);
   int threshold = 512 * 1024; // Flush every 512 KiB

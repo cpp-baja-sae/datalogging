@@ -76,12 +76,12 @@
 
 // When this is defined, ring buffers will trigger a critical error if they
 // overflow.
-#define DO_OVERFLOW_CHECKS
+// #define DO_OVERFLOW_CHECKS
 // When this is defined, ring buffers will silently drop any data that would
 // cause the buffer to overflow. This should be used instead of 
 // DO_OVERFLOW_CHECKS when attached to the car because triggering a critical
 // error prevents any other work from happening.
-// #define DISCARD_OVERFLOW
+#define DISCARD_OVERFLOW
 // When this is defined, ring buffers will trigger a critical error if they are
 // read past their end.
 #define DO_ALIGNMENT_CHECKS
