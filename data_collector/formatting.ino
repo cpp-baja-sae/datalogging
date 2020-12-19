@@ -108,8 +108,12 @@ void beginNewDatalog(int slot) {
   if (fileBuffersOpen) endCurrentDatalog();
   saveDataFormat(slot, 15);
   highResFileBuffer = FileBuffer(slot, 0);
+  int threshold = 512 * 1024; // Flush every 512 KiB
+  highResFileBuffer.setFlushThreshold(threshold);
   for (int lodIndex = 0; lodIndex < NUM_LOW_RES_LODS; lodIndex++) {
     lodBuffers[lodIndex].fileBuffer = FileBuffer(slot, lodIndex + 1);
+    lodBuffers[lodIndex].fileBuffer.setFlushThreshold(threshold);
+    threshold /= LOD_SAMPLE_INTERVAL;
   }
   fileBuffersOpen = true;
 }
@@ -144,11 +148,22 @@ void handleNewData() {
   }
   // We defer this for later so that we can be sure that we're not doing too many file operations
   // at once, which can result in us missing data.
-  if (fileBuffersOpen && !highResFileBuffer.flushIfNeeded()) {
+  if (fileBuffersOpen) {
+    int totalActions = 0;
+    // There's not much rationale behind this number, just pick something that drains the file 
+    // buffers fast enough without causing frameBuffers to overflow. If you get an error 
+    // 'ring buffer overflowed', it's too low. If you get 'main loop took too long...', it's
+    // too high.
+    #define THRESHOLD 10
+
+    totalActions += highResFileBuffer.flushIfNeeded() ? 2 : 0;
     for (int lodIndex = 0; lodIndex < NUM_LOW_RES_LODS; lodIndex++) {
-      while (lodBuffers[lodIndex].fileBuffer.writeSector());
-      // As soon as a file flushes, stop looping so we don't do anything more than that.
-      if (lodBuffers[lodIndex].fileBuffer.flushIfNeeded()) break;
+      while (lodBuffers[lodIndex].fileBuffer.writeSector()) {
+        totalActions++;
+        if (totalActions >= THRESHOLD) return;
+      }
+      totalActions += lodBuffers[lodIndex].fileBuffer.flushIfNeeded() ? 2 : 0;
+      if (totalActions >= THRESHOLD) return;
     }
   }
 }

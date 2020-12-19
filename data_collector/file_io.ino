@@ -125,7 +125,7 @@ bool FileBuffer::writeSector() {
 
 bool FileBuffer::flushIfNeeded() {
   // Flush every 1MiB
-  if (this->numWritesSinceLastFlush >= 1024 * 1024 / SD_SECTOR_SIZE) {
+  if (this->numWritesSinceLastFlush >= this->flushThreshold) {
     this->numWritesSinceLastFlush = 0;
     this->writeTo.flush();
     return true;

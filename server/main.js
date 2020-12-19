@@ -343,6 +343,7 @@ function frame_length_from_format(format) {
 
 (async () => {
     console.log(await collectorComms.getDataFormat());
-    console.log(await collectorComms.downloadFile(23, 0, console.log));
-    console.log(await collectorComms.downloadFile(23, 1, console.log));
+    for (let i = 0; i < 8; i++) {
+        console.log(await collectorComms.downloadFile(23, i, console.log));
+    }
 })();

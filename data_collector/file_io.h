@@ -44,7 +44,7 @@ void sendFileOverUsb(int slot, int file);
 class FileBuffer {
 private:
   RingBuffer<FILE_BUFFER_SIZE, char> data;
-  uint32_t numWritesSinceLastFlush;
+  uint32_t numWritesSinceLastFlush, flushThreshold;
   ExFile writeTo;
   // Set to true to throw away appended data. This should be true if a file
   // hasn't been opened yet.
@@ -63,6 +63,15 @@ public:
    * Appends additional data to the buffer.
    */
   void append(const DataFrame &frame);
+  /**
+   * Sets the threshold where flushIfNeeded() will perform a flush. The value is
+   * how many bytes have to be written to the file for this to happen. It will
+   * be rounded down to the nearest multiple of SD_SECTOR_SIZE.
+   */
+  void setFlushThreshold(int bytes) {
+    this->flushThreshold = bytes / SD_SECTOR_SIZE;
+    if (this->flushThreshold < 1) this->flushThreshold = 1;
+  }
   /**
    * Writes a sector of data to the file (if enough data is available to do so.)
    * Returns true if there is enough data to write another sector of data after
