@@ -30,6 +30,12 @@ ExFile clearAndOpenFileForWriting(int slotIndex, int fileIndex) {
   makeFilePath(fileName, slotIndex, fileIndex);
   // Delete any existing file data so that we're only writing new data.
   auto file = globalSd.open(fileName, O_WRITE | O_CREAT | O_TRUNC);
+  if (!file) {
+    while (!Serial);
+    char error[] = "Failed to open for writing! /xxx/xx ";
+    memcpy(&error[29], fileName, 7);
+    criticalError(error);
+  }
   if (file.fileSize() != 0) {
     char error[] = "Cleared file is not empty! /xxx/xx ";
     memcpy(&error[28], fileName, 7);
@@ -50,14 +56,11 @@ void setupSdCard() {
 
   // Read the list of files on the SD card so that we don't overwrite any
   // existing datalogs.
+  char filename[7];
   for(int i = 0; i < 0x100; i++) {
-    storedDatalogs[i] = false;
-  }
-  while (true) {
-    ExFile entry = root.openNextFile();
-    if (!entry) break;
-    int parsedName = atoi(entry.name());
-    storedDatalogs[parsedName] = true;
+    // 15 is the index of the data format, if it exists the slot is occupied.
+    makeFilePath(filename, i, 15);
+    storedDatalogs[i] = !!globalSd.open(filename);
   }
 }
 
@@ -76,6 +79,17 @@ void deleteSlot(int slot) {
     makeFilePath(fileName, slot, i);
     globalSd.remove(fileName);
   }
+}
+
+int reserveSlot() {
+  for (int i = 0; i < 0x100; i++) {
+    if (!storedDatalogs[i]) {
+      storedDatalogs[i] = true;
+      return i;
+    }
+  }
+  criticalError("No more free slots to store datalogs!");
+  return -1; // Unreachable.
 }
 
 void sendFileOverUsb(int slot, int fileIndex) {

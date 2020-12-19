@@ -338,8 +338,13 @@ function frameLengthFromFormat(format) {
 });//();
 
 (async () => {
-    console.log(await collectorComms.getDataFormat());
+    // console.log(await collectorComms.downloadFile(4, 15));
+    console.log((await collectorComms.getSlotStatuses()).join(' '));
+    return;
     for (let i = 0; i < 8; i++) {
-        console.log(await collectorComms.downloadFile(23, i, console.log));
+        console.log(await collectorComms.startNewRecording());
+        console.log('\n');
+        console.log((await collectorComms.getSlotStatuses()).join(' '));
+        await new Promise(res => setTimeout(res, 5000));
     }
 })();

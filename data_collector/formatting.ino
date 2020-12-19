@@ -106,8 +106,10 @@ void onNewData(DataFrame &frame) {
   updateLodBuffer(0, frame, frame, frame);
 }
 
-void beginNewDatalog(int slot) {
+int currentDatalog;
+void beginNewDatalog() {
   if (fileBuffersOpen) endCurrentDatalog();
+  int slot = reserveSlot();
   deleteSlot(slot);
   saveDataFormat(slot, 15);
   highResFileBuffer = FileBuffer(slot, 0);
@@ -119,6 +121,7 @@ void beginNewDatalog(int slot) {
     threshold /= LOD_SAMPLE_INTERVAL;
   }
   fileBuffersOpen = true;
+  currentDatalog = slot;
 }
 
 void endCurrentDatalog() {
@@ -128,10 +131,11 @@ void endCurrentDatalog() {
     lodBuffers[lod].fileBuffer.close();
   }
   fileBuffersOpen = false;
+  currentDatalog = -1;
 }
 
 void initialFormattingSetup() {
-    beginNewDatalog(23);
+    beginNewDatalog();
 }
 
 void handleNewData() {

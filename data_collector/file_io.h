@@ -13,6 +13,7 @@
 // maximize speed.
 
 struct DataFrame;
+extern bool storedDatalogs[0x100];
 
 /**
  * This function must be called before any other file IO tasks are performed.
@@ -29,6 +30,13 @@ void saveDataFormat(int slot, int file);
  * This function removes all files contained in a slot.
  */
 void deleteSlot(int slot);
+
+/**
+ * Returns the index of a slot which can be written to without overwriting
+ * existing data. The same index will also not be returned on later calls to
+ * this function.
+ */
+int reserveSlot();
 
 /**
  * Sends the contents of the provided file back to the host over the USB 

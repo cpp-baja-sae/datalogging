@@ -3,7 +3,6 @@
 ## Commands that can be sent over USB:
 
 ### 0F SS 
-
 Read the file at slot SS, index F. The different slots are used to hold
 different datalogs, and the F index is used to differentiate between different
 LODs. (index 15 is used to hold the json description of the datalog.) The Teensy
@@ -11,10 +10,25 @@ first sends 8 bytes containing the size of the file, followed by relentlessly
 streaming the entire content of the file.
 
 ### 10 00
-
 Read the data format. Returns 4 bytes containing how many bytes long the data
 format description is, followed by that description. This file is stored as 
 file 15 (0xF) of every datalog slot.
+
+### 10 01
+Read what slots are being used. Returns 256 bytes, each one coding the status
+of a corresponding slot. 
+- 0x00 = unused
+- 0x01 = contains data
+- 0x02 = actively being recorded.
+
+### 10 02
+Starts recording data to a new slot. Sends 0xDD to confirm success.
+
+### 10 03
+Stops any current data recording. Sends 0xDD to confirm success.
+
+### 20 SS
+Delete all data contained in slot SS. Sends 0xDD to confirm success.
 
 ## Development Notes
 

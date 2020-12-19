@@ -105,7 +105,6 @@ async function getDataFormat() {
 
     let buffer = Buffer.alloc(0);
     let expectedSize = 0;
-    usb.on('error', console.error);
     await new Promise((res, rej) => {
         usb.on('data', data => {
             if (expectedSize === 0) {
@@ -127,8 +126,74 @@ async function getDataFormat() {
     return JSON.parse(buffer.toString('utf-8'));
 }
 
+async function readFixedUsbData(usb, expectedSize) {
+    let buffer = Buffer.alloc(0);
+    await new Promise((res, rej) => {
+        usb.on('data', data => {
+            buffer = Buffer.concat([buffer, data]);
+            if (buffer.length > expectedSize) {
+                rej(new Error('Received more data than expected!'));
+            } else if (buffer.length === expectedSize) {
+                // For some reason this has to be *inside* the event handler or
+                // the server will hang when trying to exit.
+                usb.close();
+                res();
+            }
+        });
+    });
+    return buffer;
+}
+
+const SLOT_STATUS_EMPTY = 0;
+const SLOT_STATUS_CONTAINS_DATA = 1;
+const SLOT_STATUS_BUSY = 2; // Meaning the datalogger is currently writing to the slot.
+// Returns a list describing how all 256 slots are being used.
+async function getSlotStatuses() {
+    const usb = await sendCommand(0x1, 0x0, 0x01);
+    const data = await readFixedUsbData(usb, 0x100);
+    let result = [];
+    for (const value of data) {
+        result.push(value);
+    }
+    return result;
+}
+
+// Tells the datalogger to start recording on a new slot.
+async function startNewRecording() {
+    const usb = await sendCommand(0x1, 0x0, 0x02);
+    const data = await readFixedUsbData(usb, 1);
+    if (data[0] !== 0xDD) {
+        throw new Error('Did not receive success code 0xDD, operation failed.');
+    }
+}
+
+// Tells the datalogger to stop recording.
+async function stopRecording() {
+    const usb = await sendCommand(0x1, 0x0, 0x03);
+    const data = await readFixedUsbData(usb, 1);
+    if (data[0] !== 0xDD) {
+        throw new Error('Did not receive success code 0xDD, operation failed.');
+    }
+}
+
+// Tells the datalogger to delete all data contained in the specified slot.
+async function deleteSlotContents(slotIndex) {
+    const usb = await sendCommand(0x2, 0x0, slotIndex);
+    const data = await readFixedUsbData(usb, 1);
+    if (data[0] !== 0xDD) {
+        throw new Error('Did not receive success code 0xDD, operation failed.');
+    }
+}
+
 module.exports = {
     downloadFile,
     getDataFormat,
+    getSlotStatuses,
+    startNewRecording,
+    stopRecording,
+    deleteSlotContents,
     METADATA_INDEX,
+    SLOT_STATUS_EMPTY,
+    SLOT_STATUS_CONTAINS_DATA,
+    SLOT_STATUS_BUSY,
 };

@@ -20,6 +20,12 @@ void initialFormattingSetup();
 void beginNewDatalog(int slot);
 
 /**
+ * -1 if no datalog is currently being recorded, otherwise the slot it is being
+ * recorded to.
+ */
+extern int currentDatalog;
+
+/**
  * Stops recording the current datalog. Does nothing if no datalog is being
  * recorded.
  */
