@@ -25,11 +25,13 @@ void setupPins() {
 }
 
 void setup() {
+  setOnboardLed(true);
   setupSdCard();
   setupPins();
   initialFormattingSetup();
   Serial.begin(9600);
   startTaskTimer();
+  setOnboardLed(false);
 
   while (true) {
     handleNewData();

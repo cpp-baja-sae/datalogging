@@ -23,8 +23,10 @@ void setupSdCard();
 /**
  * This function writes the contents of data_format.json (provided in 
  * DEFAULT_FORMAT_CONTENT from generated_format_info.h) to the provided file.
+ * Returns false if the slot is poisoned and you need to reserve a different
+ * slot.
  */
-void saveDataFormat(int slot, int file);
+bool saveDataFormat(int slot, int file);
 
 /**
  * This function removes all files contained in a slot.
@@ -34,7 +36,7 @@ void deleteSlot(int slot);
 /**
  * Returns the index of a slot which can be written to without overwriting
  * existing data. The same index will also not be returned on later calls to
- * this function.
+ * this function. Returns -1 if no slot is available.
  */
 int reserveSlot();
 
@@ -72,6 +74,10 @@ public:
    * specified datalog slot.
    */
   FileBuffer(int slot, int file);
+  /**
+   * If this is true, you need to reserve a different slot.
+   */
+  bool isPoisoned();
   /**
    * Appends additional data to the buffer.
    */

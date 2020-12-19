@@ -9,6 +9,9 @@ SdExFat globalSd;
 // This array stores true in an element if there is a datalog stored at that
 // index (I.E. if the SD card has a folder named after the index.)
 bool storedDatalogs[0x100];
+// Stores slots that are producing errors for unknown reasons. We pretend they
+// are blank and don't allow access to them.
+bool poisonedDatalogs[0x100];
 
 /**
  * Buffer must point to a region of at least 7 bytes of memory. This function
@@ -31,15 +34,8 @@ ExFile clearAndOpenFileForWriting(int slotIndex, int fileIndex) {
   // Delete any existing file data so that we're only writing new data.
   auto file = globalSd.open(fileName, O_WRITE | O_CREAT | O_TRUNC);
   if (!file) {
-    while (!Serial);
-    char error[] = "Failed to open for writing! /xxx/xx ";
-    memcpy(&error[29], fileName, 7);
-    criticalError(error);
-  }
-  if (file.fileSize() != 0) {
-    char error[] = "Cleared file is not empty! /xxx/xx ";
-    memcpy(&error[28], fileName, 7);
-    criticalError(error);
+    poisonedDatalogs[slotIndex] = true;
+    storedDatalogs[slotIndex] = false;
   }
   return file;
 }
@@ -60,17 +56,19 @@ void setupSdCard() {
   for(int i = 0; i < 0x100; i++) {
     // 15 is the index of the data format, if it exists the slot is occupied.
     makeFilePath(filename, i, 15);
-    storedDatalogs[i] = !!globalSd.open(filename);
+    storedDatalogs[i] = (!!globalSd.open(filename, O_READ));
+    poisonedDatalogs[i] = false;
   }
 }
 
-void saveDataFormat(int slot, int fileIndex) {
+bool saveDataFormat(int slot, int fileIndex) {
   ExFile file = clearAndOpenFileForWriting(slot, fileIndex);
   if (!file) {
-    criticalError("Cannot save data format, failed to open file.");
+    return false;
   }
   file.write(DEFAULT_FORMAT_CONTENT, DEFAULT_FORMAT_SIZE);
   file.close();
+  return true;
 }
 
 void deleteSlot(int slot) {
@@ -79,17 +77,17 @@ void deleteSlot(int slot) {
     makeFilePath(fileName, slot, i);
     globalSd.remove(fileName);
   }
+  storedDatalogs[slot] = false;
 }
 
 int reserveSlot() {
   for (int i = 0; i < 0x100; i++) {
-    if (!storedDatalogs[i]) {
+    if (!storedDatalogs[i] && !poisonedDatalogs[i]) {
       storedDatalogs[i] = true;
       return i;
     }
   }
-  criticalError("No more free slots to store datalogs!");
-  return -1; // Unreachable.
+  return -1;
 }
 
 void sendFileOverUsb(int slot, int fileIndex) {
@@ -128,10 +126,11 @@ FileBuffer::FileBuffer() {
 FileBuffer::FileBuffer(int slot, int file) {
   this->discardData = false;
   this->writeTo = clearAndOpenFileForWriting(slot, file);
-  if (!this->writeTo) {
-    criticalError("Failed to open file for file buffer.");
-  }
   this->numWritesSinceLastFlush = 0;
+}
+
+bool FileBuffer::isPoisoned() {
+  return !this->writeTo;
 }
 
 void FileBuffer::append(const DataFrame &data) {

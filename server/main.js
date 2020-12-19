@@ -111,7 +111,7 @@ function frameLengthFromFormat(format) {
 
     app.put('/api/settings/streamLod', async (req, res) => {
         if (!req.body.streamLod) {
-            res.status(400).contentType('json').send({error: 'Missing required parameter "streamLod" in body.'});
+            res.status(400).contentType('json').send({ error: 'Missing required parameter "streamLod" in body.' });
             return;
         }
         await commandIpc.sendCommand(ipc.COMMANDSETSTREAMLOD, [req.body.streamLod]);
@@ -338,13 +338,29 @@ function frameLengthFromFormat(format) {
 });//();
 
 (async () => {
-    // console.log(await collectorComms.downloadFile(4, 15));
     console.log((await collectorComms.getSlotStatuses()).join(' '));
+    while (true) {
+        let statuses = await collectorComms.getSlotStatuses();
+        for (let i = 0; i < 256; i++) {
+            if (statuses[i] !== 1) {
+                continue;
+            }
+            await collectorComms.deleteSlotContents(i);
+            statuses = await collectorComms.getSlotStatuses();
+            console.log(statuses.join(' '));
+            console.log('\n');
+            await new Promise(res => setTimeout(res, 100));
+        }
+        console.log('asdlfkjasdf');
+        for (let i = 0; i < 200; i++) {
+            await collectorComms.startNewRecording();
+            console.log((await collectorComms.getSlotStatuses()).join(' '));
+            console.log('\n');
+            await new Promise(res => setTimeout(res, 100));
+        }
+    }
     return;
     for (let i = 0; i < 8; i++) {
-        console.log(await collectorComms.startNewRecording());
-        console.log('\n');
-        console.log((await collectorComms.getSlotStatuses()).join(' '));
-        await new Promise(res => setTimeout(res, 5000));
+        console.log(await collectorComms.downloadFile(6, i));
     }
 })();

@@ -62,3 +62,5 @@ Learn from my past mistakes.
 - The SD card can become corrupted for any number of reasons, most recently
   because a file was opened twice at the same time, one time for writing and 
   another for reading. Reformatting the SD card fixed this.
+- Sometimes the SD card just refuses to read from or write to a particular
+  folder. This is checked for and skipped over when starting a new datalog.

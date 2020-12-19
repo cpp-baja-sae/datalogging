@@ -15,9 +15,10 @@ void initialFormattingSetup();
 /**
  * Starts recording incoming data to the specified slot. If a datalog already
  * exists there, it will be overwritten. If another datalog is currently being
- * written to, endCurrentDatalog() will automatically be called.
+ * written to, endCurrentDatalog() will automatically be called. Returns true
+ * if successful.
  */
-void beginNewDatalog(int slot);
+bool beginNewDatalog(int slot);
 
 /**
  * -1 if no datalog is currently being recorded, otherwise the slot it is being

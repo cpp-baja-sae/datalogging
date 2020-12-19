@@ -107,21 +107,30 @@ void onNewData(DataFrame &frame) {
 }
 
 int currentDatalog;
-void beginNewDatalog() {
-  if (fileBuffersOpen) endCurrentDatalog();
-  int slot = reserveSlot();
-  deleteSlot(slot);
-  saveDataFormat(slot, 15);
-  highResFileBuffer = FileBuffer(slot, 0);
-  int threshold = 512 * 1024; // Flush every 512 KiB
-  highResFileBuffer.setFlushThreshold(threshold);
-  for (int lodIndex = 0; lodIndex < NUM_LOW_RES_LODS; lodIndex++) {
-    lodBuffers[lodIndex].fileBuffer = FileBuffer(slot, lodIndex + 1);
-    lodBuffers[lodIndex].fileBuffer.setFlushThreshold(threshold);
-    threshold /= LOD_SAMPLE_INTERVAL;
+bool beginNewDatalog() {
+  bool error;
+  while (true) {
+    error = false;
+    if (fileBuffersOpen) endCurrentDatalog();
+    int slot = reserveSlot();
+    if (slot == -1) return false;
+    error |= !saveDataFormat(slot, 15);
+    highResFileBuffer = FileBuffer(slot, 0);
+    error |= highResFileBuffer.isPoisoned();
+    int threshold = 512 * 1024; // Flush every 512 KiB
+    highResFileBuffer.setFlushThreshold(threshold);
+    for (int lodIndex = 0; lodIndex < NUM_LOW_RES_LODS; lodIndex++) {
+      lodBuffers[lodIndex].fileBuffer = FileBuffer(slot, lodIndex + 1);
+      lodBuffers[lodIndex].fileBuffer.setFlushThreshold(threshold);
+      threshold /= LOD_SAMPLE_INTERVAL;
+      error |= lodBuffers[lodIndex].fileBuffer.isPoisoned();
+    }
+    fileBuffersOpen = true;
+    currentDatalog = slot;
+    // If there is an error, we go back to the start of the loop, which will
+    // close all our file handles and such.
+    if (!error) return true;
   }
-  fileBuffersOpen = true;
-  currentDatalog = slot;
 }
 
 void endCurrentDatalog() {
