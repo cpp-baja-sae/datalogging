@@ -89,13 +89,19 @@ void taskInterrupt() {
 
   currentTaskIndex += 1;
   if (currentTaskIndex == TASKS_PER_FRAME) {
-    currentWipFrameBufferIndex = (currentWipFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
-    // We can't do this test on currentWip == nextUnread because that is also the case when the 
-    // main loop has read everything we have written.
+    frameBuffers[currentWipFrameBufferIndex].errorCount = numNoncriticalErrors;
+    frameBuffers[currentWipFrameBufferIndex].lastErrorCode = lastNoncriticalErrorCode;
+    currentTaskIndex = 0;
     if (currentWipFrameBufferIndex + 1 == nextUnreadFrameBufferIndex) {
+      #ifdef DISCARD_OVERFLOW
+      noncriticalError(1);
+      return;
+      #endif
+      #ifdef DO_OVERFLOW_CHECKS
       // We are about to overwrite a frame that the main loop hasn't read yet.
       multipleNewFramesError = true;
+      #endif
     }
-    currentTaskIndex = 0;
+    currentWipFrameBufferIndex = (currentWipFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
   }
 }

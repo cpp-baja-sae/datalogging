@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "generated/config.h"
+#include "generated_format_info.h"
 #include "file_io.h"
 #include "formatting.h"
 #include "tasks.h"
@@ -94,6 +94,8 @@ void onBufferProgressComplete(int index) {
     thisLod.fileBuffer.append(min);
     thisLod.fileBuffer.append(max);
     thisLod.fileBuffer.append(avg);
+    while (thisLod.fileBuffer.writeSector());
+    thisLod.fileBuffer.flushIfNeeded();
   }
   // Reset to prepare for a new batch of samples.
   resetBuffer(index);
@@ -143,27 +145,8 @@ void handleNewData() {
     if (fileBuffersOpen) {
       highResFileBuffer.append(constRef);
       while (highResFileBuffer.writeSector());
+      highResFileBuffer.flushIfNeeded();
     }
     nextUnreadFrameBufferIndex = (nextUnreadFrameBufferIndex + 1) % NUM_FRAME_BUFFERS;
-  }
-  // We defer this for later so that we can be sure that we're not doing too many file operations
-  // at once, which can result in us missing data.
-  if (fileBuffersOpen) {
-    int totalActions = 0;
-    // There's not much rationale behind this number, just pick something that drains the file 
-    // buffers fast enough without causing frameBuffers to overflow. If you get an error 
-    // 'ring buffer overflowed', it's too low. If you get 'main loop took too long...', it's
-    // too high.
-    #define THRESHOLD 10
-
-    totalActions += highResFileBuffer.flushIfNeeded() ? 2 : 0;
-    for (int lodIndex = 0; lodIndex < NUM_LOW_RES_LODS; lodIndex++) {
-      while (lodBuffers[lodIndex].fileBuffer.writeSector()) {
-        totalActions++;
-        if (totalActions >= THRESHOLD) return;
-      }
-      totalActions += lodBuffers[lodIndex].fileBuffer.flushIfNeeded() ? 2 : 0;
-      if (totalActions >= THRESHOLD) return;
-    }
   }
 }

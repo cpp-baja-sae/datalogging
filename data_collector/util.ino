@@ -12,6 +12,12 @@ void criticalError(const char *error) {
   }
 }
 
+volatile uint8_t numNoncriticalErrors = 0, lastNoncriticalErrorCode = 0;
+void noncriticalError(uint8_t code) {
+  numNoncriticalErrors += 1;
+  lastNoncriticalErrorCode = code;
+}
+
 void setOnboardLed(const bool shouldBeOn) {
   digitalWrite(PIN_ONBOARD_LED, shouldBeOn ? HIGH : LOW);
 }
@@ -25,11 +31,15 @@ void RingBuffer<SIZE, T>::appendContinuous(const T *data, uint32_t len) {
 
 template<int SIZE, typename T>
 void RingBuffer<SIZE, T>::append(const T *data, uint32_t len) {
-  #ifdef DO_OVERFLOW_CHECKS
   if (this->unreadLen() + len >= SIZE) {
+    #ifdef DISCARD_OVERFLOW
+    noncriticalError(2);
+    return;
+    #endif
+    #ifdef DO_OVERFLOW_CHECKS
     criticalError("Ring buffer overflowed.");
+    #endif
   }
-  #endif
   if (len + this->writeIndex > SIZE) {
     uint32_t partialSegmentLen = SIZE - this->writeIndex;
     this->appendContinuous(data, partialSegmentLen);

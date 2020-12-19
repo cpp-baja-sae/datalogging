@@ -11,7 +11,7 @@ const ws = require('ws');
 const collectorComms = require('./collectorComms');
 
 // Must not end with a slash.
-const data_dir = '/root/datalogs';
+const dataDir = '/root/datalogs';
 
 const FORMAT_SIZES = {
     unorm16: 2,
@@ -42,12 +42,12 @@ const FORMAT_PARSERS = {
     dummy64: (_buffer, _offset) => '0',
 };
 
-function frame_length_from_format(format) {
-    let total_size = 0;
+function frameLengthFromFormat(format) {
+    let totalSize = 0;
     for (let item of format.layout) {
-        total_size += FORMAT_SIZES[item.type]
+        totalSize += FORMAT_SIZES[item.type]
     }
-    return total_size;
+    return totalSize;
 }
 
 // Wrap everything in an anonymous async method so we can use await keyword.
@@ -55,21 +55,20 @@ function frame_length_from_format(format) {
     console.log('Creating server objects...');
     let app = express();
     let server = http.createServer(app);
-    let ws_server = new ws.Server({ server });
+    let wsServer = new ws.Server({ server });
 
-    // const default_format 
-    //     = JSON.parse((await command_ipc.send_command(ipc.COMMAND_GET_FORMAT, [])).toString('utf-8'));
-    // const frame_size = frame_length_from_format(default_format);
+    const defaultFormat = await collectorComms.getDataFormat();
+    const frameSize = frameLengthFromFormat(defaultFormat);
 
     console.log('Configuring web socket server...');
-    ws_server.on('connection', (connection) => {
+    wsServer.on('connection', (connection) => {
         connection.alive = true;
         connection.on('pong', () => connection.alive = true);
     });
 
     // Check every 10 seconds to make sure clients are still connected.
     setInterval(() => {
-        ws_server.clients.forEach(client => {
+        wsServer.clients.forEach(client => {
             if (!client.alive) {
                 client.terminate();
                 return;
@@ -79,14 +78,14 @@ function frame_length_from_format(format) {
         });
     }, 10000);
 
-    // ipc_stream.on('data', (data) => {
-    //     if (ws_server.clients.size === 0) {
+    // ipcStream.on('data', (data) => {
+    //     if (wsServer.clients.size === 0) {
     //         // Don't bother if no one's connected.
     //         // TODO: If everyone is disconnected, lower the sample rate?
     //         return;
     //     }
 
-    //     ws_server.clients.forEach(client => {
+    //     wsServer.clients.forEach(client => {
     //         client.send(new Uint8Array(data));
     //     });
     // });
@@ -94,50 +93,47 @@ function frame_length_from_format(format) {
     console.log('Configuring Express endpoints...');
 
     // This way we can use the React dev server while prototyping the UI.
-    // We can also develop the client on a faster, more capable computer while
-    // still being able to access data from the PI, because the react dev server
-    // is slow af with that wimpy 1GHz processor.
     app.use(cors());
     app.use(express.json());
 
     // Only a get for this one because it's set in stone.
-    app.get('/api/settings/default_format', async (req, res) => {
-        res.status(200).contentType('json').send({ default_format: default_format });
+    app.get('/api/settings/defaultFormat', async (req, res) => {
+        res.status(200).contentType('json').send({ defaultFormat: defaultFormat });
     });
 
     // The LOD that is being streamed to the client.
-    app.get('/api/settings/stream_lod', async (req, res) => {
-        let value = await command_ipc.send_command(ipc.COMMAND_GET_STREAM_LOD, []);
+    app.get('/api/settings/streamLod', async (req, res) => {
+        let value = await commandIpc.sendCommand(ipc.COMMAND_GET_STREAM_LOD, []);
         res.status(200).contentType('json').send({
-            stream_lod: value[0]
+            streamLod: value[0]
         });
     });
 
-    app.put('/api/settings/stream_lod', async (req, res) => {
-        if (!req.body.stream_lod) {
-            res.status(400).contentType('json').send({error: 'Missing required parameter "stream_lod" in body.'});
+    app.put('/api/settings/streamLod', async (req, res) => {
+        if (!req.body.streamLod) {
+            res.status(400).contentType('json').send({error: 'Missing required parameter "streamLod" in body.'});
             return;
         }
-        await command_ipc.send_command(ipc.COMMAND_SET_STREAM_LOD, [req.body.stream_lod]);
-        // realtime_stream_uses_low_res_frames = req.body.stream_lod > 0;
+        await commandIpc.sendCommand(ipc.COMMANDSETSTREAMLOD, [req.body.streamLod]);
+        // realtimeStreamUsesLowResFrames = req.body.streamLod > 0;
         res.sendStatus(201);
     });
 
     app.get('/api/datalogs', async (req, res) => {
-        let datalog_folders = await fsp.readdir(data_dir);
-        datalog_folders = datalog_folders.filter(item => item.indexOf('datalog_') === 0);
+        let datalogFolders = await fsp.readdir(dataDir);
+        datalogFolders = datalogFolders.filter(item => item.indexOf('datalog') === 0);
         const results = [];
-        for (const folder of datalog_folders) {
-            let filePath = path.join(data_dir, folder, 'format.json');
+        for (const folder of datalogFolders) {
+            let filePath = path.join(dataDir, folder, 'format.json');
             try {
                 let fileContents = await fsp.readFile(filePath);
                 const format = JSON.parse(fileContents);
-                const frames_per_second = (1000 * 1000) / format.frame_time_us;
-                const bytes_per_second = frame_length_from_format(format) * frames_per_second;
-                const lod0_stat = await fsp.stat(path.join(data_dir, folder, '0.bin'));
-                const duration = Math.floor(lod0_stat.size / bytes_per_second);
+                const framesPerSecond = (1000 * 1000) / format.frameTimeUs;
+                const bytesPerSecond = frameLengthFromFormat(format) * framesPerSecond;
+                const lod0_stat = await fsp.stat(path.join(dataDir, folder, '0.bin'));
+                const duration = Math.floor(lod0_stat.size / bytesPerSecond);
                 results.push({
-                    date: folder.substr(8), // Skip 'datalog_'
+                    date: folder.substr(8), // Skip 'datalog'
                     duration,
                     ...format
                 });
@@ -148,15 +144,15 @@ function frame_length_from_format(format) {
         res.status(200).send({ list: results });
     });
 
-    async function open_segment_stream(req, res) {
-        let folder = 'datalog_' + ('' + req.params.date).padStart(20, '0');
-        folder = data_dir + '/' + folder;
+    async function openSegmentStream(req, res) {
+        let folder = 'datalog' + ('' + req.params.date).padStart(20, '0');
+        folder = dataDir + '/' + folder;
         try {
             await fsp.stat(folder);
         } catch {
             res.status(404).send({
                 status: 'error',
-                error: 'file_not_found',
+                error: 'fileNot_found',
                 description: 'Could not find a datalog file with the date '
                     + req.params.date
             });
@@ -165,12 +161,12 @@ function frame_length_from_format(format) {
 
         let format = await fsp.readFile(folder + '/format.json');
         format = JSON.parse(format);
-        let bytes_per_frame = frame_length_from_format(format);
-        if (req.query.lod > 0) bytes_per_frame *= 3;
-        let start = parseInt(req.query.start) * bytes_per_frame;
-        let end = parseInt(req.query.end) * bytes_per_frame;
-        let data_path = folder + '/' + req.query.lod + '.bin';
-        let stream = fs.createReadStream(data_path, {
+        let bytesPerFrame = frameLengthFromFormat(format);
+        if (req.query.lod > 0) bytesPerFrame *= 3;
+        let start = parseInt(req.query.start) * bytesPerFrame;
+        let end = parseInt(req.query.end) * bytesPerFrame;
+        let dataPath = folder + '/' + req.query.lod + '.bin';
+        let stream = fs.createReadStream(dataPath, {
             start: start,
             end: end,
         });
@@ -192,15 +188,15 @@ function frame_length_from_format(format) {
             return;
         }
 
-        let [_format, segment_stream] = await open_segment_stream(req, res);
-        if (!segment_stream) return;
+        let [_format, segmentStream] = await openSegmentStream(req, res);
+        if (!segmentStream) return;
 
         res.status(200);
         // Arbitrary binary data.
         res.contentType('application/octet-stream');
         // Pipe in data read directly from the file.
-        segment_stream.pipe(res);
-        segment_stream.on('end', () => {
+        segmentStream.pipe(res);
+        segmentStream.on('end', () => {
             res.end();
         });
     });
@@ -226,8 +222,8 @@ function frame_length_from_format(format) {
         }
         channels = channels.map(x => parseInt(x));
 
-        let [format, segment_stream] = await open_segment_stream(req, res);
-        if (!segment_stream) return;
+        let [format, segmentStream] = await openSegmentStream(req, res);
+        if (!segmentStream) return;
 
         res.status(200).contentType('text/csv');
 
@@ -248,13 +244,13 @@ function frame_length_from_format(format) {
         let currentChannelIndex = 0;
         let currentSubframe = 0;
         let totalSubframes = req.query.lod == 0 ? 1 : 3;
-        let timePerFrame = format.frame_time_us / (1000 * 1000);
+        let timePerFrame = format.frameTimeUs / (1000 * 1000);
         let time = req.query.start * timePerFrame;
         let line = '' + (time * 1000).toFixed(1) + ',';
-        let leftover_bytes = null;
-        segment_stream.on('data', (chunk) => {
-            if (leftover_bytes !== null) {
-                chunk = Buffer.concat([leftover_bytes, chunk]);
+        let leftoverBytes = null;
+        segmentStream.on('data', (chunk) => {
+            if (leftoverBytes !== null) {
+                chunk = Buffer.concat([leftoverBytes, chunk]);
             }
             let readPointer = 0;
             let type = format.layout[currentChannelIndex].type;
@@ -279,17 +275,17 @@ function frame_length_from_format(format) {
                 size = FORMAT_SIZES[type];
             }
             if (readPointer !== chunk.length) {
-                leftover_bytes = chunk.slice(readPointer);
+                leftoverBytes = chunk.slice(readPointer);
             } else {
-                leftover_bytes = null;
+                leftoverBytes = null;
             }
         });
-        segment_stream.on('end', () => {
+        segmentStream.on('end', () => {
             res.end();
         });
     });
 
-    async function estimate_csv_size(req, res) {
+    async function estimateCsvSize(req, res) {
         if (
             !req.query.start
             || !req.query.end
@@ -316,20 +312,20 @@ function frame_length_from_format(format) {
         }
         channels = channels.map(x => parseInt(x));
 
-        let [format, segment_stream] = await open_segment_stream(req, res);
+        let [format, segmentStream] = await openSegmentStream(req, res);
         if (!format) return;
         // Close the file since we don't need it.
-        segment_stream.destroy();
-        let line_length = channels.length + 1 + 10; // Commas and newline and timestamp.
+        segmentStream.destroy();
+        let lineLength = channels.length + 1 + 10; // Commas and newline and timestamp.
         for (let channel of channels) {
-            line_length += FORMAT_CSV_SIZES[format.layout[channel].type];
+            linelength += FORMAT_CSV_SIZES[format.layout[channel].type];
         }
-        if (req.query.lod > 0) line_length *= 3;
-        return line_length * (req.query.end - req.query.start);
+        if (req.query.lod > 0) lineLength *= 3;
+        return lineLength * (req.query.end - req.query.start);
     }
 
-    app.get('/api/datalogs/:date/csv_estimate', async (req, res) => {
-        res.status(200).send({ estimate: await estimate_csv_size(req, res) });
+    app.get('/api/datalogs/:date/csvEstimate', async (req, res) => {
+        res.status(200).send({ estimate: await estimateCsvSize(req, res) });
     });
 
     // Serve user interface from /ui/*.

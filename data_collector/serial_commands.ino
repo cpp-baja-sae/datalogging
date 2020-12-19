@@ -1,4 +1,4 @@
-#include "generated/config.h"
+#include "generated_format_info.h"
 #include "serial_commands.h"
 #include "util.h"
 

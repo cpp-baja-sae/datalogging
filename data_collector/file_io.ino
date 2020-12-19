@@ -30,6 +30,8 @@ ExFile clearAndOpenFileForWriting(int slotIndex, int fileIndex) {
   makeFilePath(fileName, slotIndex, fileIndex);
   // Delete any existing file data so that we're only writing new data.
   globalSd.remove(fileName);
+  globalSd.remove(fileName);
+  globalSd.remove(fileName);
   return globalSd.open(fileName, FILE_WRITE);
 }
 

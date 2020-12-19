@@ -1,10 +1,10 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-#include "generated/config.h"
+#include "generated_format_info.h"
 
 // Contains miscellaneous code like settings and a ring buffer class. Some
-// settings are provided by generated/config.h as they are derived from
+// settings are provided by generated_format_info.h as they are derived from
 // data_format.json.
 
 // After 20 tasks have been performed, a frame should be saved to a file buffer.
@@ -15,11 +15,11 @@
 // Frame buffers store data for the main loop to write to files. Increasing this
 // number allows the main loop to get caught up longer waiting for other things
 // to finish before attending to waiting data without losing data.
-#define NUM_FRAME_BUFFERS 256
+#define NUM_FRAME_BUFFERS 4096
 // Writing this many bytes to the SD card at a time results in improved 
 // performance.
 #define SD_SECTOR_SIZE 512
-#define FILE_BUFFER_SIZE (SD_SECTOR_SIZE * 16)
+#define FILE_BUFFER_SIZE (SD_SECTOR_SIZE * 32)
 // Transmitting this many bytes at a time over the serial connection is the most
 // optimal rate possible.
 #define USB_PACKET_SIZE 64
@@ -77,6 +77,11 @@
 // When this is defined, ring buffers will trigger a critical error if they
 // overflow.
 #define DO_OVERFLOW_CHECKS
+// When this is defined, ring buffers will silently drop any data that would
+// cause the buffer to overflow. This should be used instead of 
+// DO_OVERFLOW_CHECKS when attached to the car because triggering a critical
+// error prevents any other work from happening.
+// #define DISCARD_OVERFLOW
 // When this is defined, ring buffers will trigger a critical error if they are
 // read past their end.
 #define DO_ALIGNMENT_CHECKS
@@ -86,6 +91,13 @@
  * repeatedly be printed to any serial monitor which is listening over the USB port.
  */
 void criticalError(const char *error);
+/** 
+ * Records a non-critical error which will be recorded in the datalog.
+ * Error code 1: main did not process incoming data fast enough.
+ * Error code 2: ring buffer overflow.
+ */
+void noncriticalError(uint8_t code);
+extern volatile uint8_t numNoncriticalErrors, lastNoncriticalErrorCode;
 /**
  * Turns on or off the onboard LED, useful for debugging when the serial console is occupied.
  */

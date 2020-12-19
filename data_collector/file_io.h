@@ -21,7 +21,7 @@ void setupSdCard();
 
 /**
  * This function writes the contents of data_format.json (provided in 
- * DEFAULT_FORMAT_CONTENT from generated/config.h) to the provided file.
+ * DEFAULT_FORMAT_CONTENT from generated_format_info.h) to the provided file.
  */
 void saveDataFormat(int slot, int file);
 
