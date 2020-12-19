@@ -70,6 +70,10 @@ void sendFileOverUsb(int slot, int fileIndex) {
   makeFilePath(fileName, slot, fileIndex);
   ExFile file = globalSd.open(fileName, FILE_READ);
   if (!file) {
+    uint64_t size = 0;
+    Serial.write((char*) &size, 8);
+    Serial.flush();
+    Serial.send_now();
     criticalError("Cannot send file over USB, failed to open file.");
   }
   uint64_t size = file.size();
@@ -119,11 +123,14 @@ bool FileBuffer::writeSector() {
   return this->data.unreadLen() >= SD_SECTOR_SIZE;
 }
 
-void FileBuffer::flushIfNeeded() {
+bool FileBuffer::flushIfNeeded() {
   // Flush every 1MiB
   if (this->numWritesSinceLastFlush >= 1024 * 1024 / SD_SECTOR_SIZE) {
     this->numWritesSinceLastFlush = 0;
     this->writeTo.flush();
+    return true;
+  } else {
+    return false;
   }
 }
 

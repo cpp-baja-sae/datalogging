@@ -29,7 +29,6 @@ void setup() {
   setupPins();
   initialFormattingSetup();
   Serial.begin(9600);
-  while (!Serial);
   startTaskTimer();
 
   while (true) {

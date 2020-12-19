@@ -343,9 +343,6 @@ function frame_length_from_format(format) {
 
 (async () => {
     console.log(await collectorComms.getDataFormat());
-    await new Promise((res, rej) => {
-        setTimeout(res, 1000);
-    });
-    console.log('Trying again...');
-    console.log(await collectorComms.getDataFormat());
+    console.log(await collectorComms.downloadFile(23, 0, console.log));
+    console.log(await collectorComms.downloadFile(23, 1, console.log));
 })();

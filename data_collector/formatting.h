@@ -13,8 +13,22 @@
 void initialFormattingSetup();
 
 /**
+ * Starts recording incoming data to the specified slot. If a datalog already
+ * exists there, it will be overwritten. If another datalog is currently being
+ * written to, endCurrentDatalog() will automatically be called.
+ */
+void beginNewDatalog(int slot);
+
+/**
+ * Stops recording the current datalog. Does nothing if no datalog is being
+ * recorded.
+ */
+void endCurrentDatalog();
+
+/**
  * Regularly call this function to format and send new data created by tasks.ino
  * to the individual files for each LOD.
  */
+void handleNewData();
 
 #endif /* FORMATTING_H_ */

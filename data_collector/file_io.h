@@ -70,9 +70,10 @@ public:
    */
   bool writeSector();
   /**
-   * Ensures that written data has been saved to the card.
+   * Ensures that written data has been saved to the card. Returns true if a 
+   * flush was performed.
    */
-  void flushIfNeeded();
+  bool flushIfNeeded();
   /**
    * Closes the file this buffer is writing to.
    */

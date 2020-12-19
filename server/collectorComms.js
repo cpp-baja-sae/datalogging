@@ -30,13 +30,13 @@ async function sendCommand(command, arg1, arg2) {
     usb.write(new Uint8Array([command << 4 | arg1 & 0xF, arg2 & 0xFF]));
     usb.end();
     await usb.awaitEvent('finish');
-    usb.close();
+    return usb;
 }
 
 // Downloads a file from the datalogger to a temporary location, returning the 
 // path it was downloaded to when complete.
 async function downloadFile(slotIndex, fileIndex, sizeCallback) {
-    await sendCommand(0x0, fileIndex, slotIndex);
+    const usb = await sendCommand(0x0, fileIndex, slotIndex);
 
     try {
         await fsp.mkdir(DOWNLOAD_STORAGE);
@@ -51,7 +51,6 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
     }
     const downloadTarget = fs.createWriteStream(filePath);
 
-    const usb = openUsbPort();
     // The size of the file should be transmitted in a single packet.
     const size = await new Promise((res, rej) => {
         usb.on("data", data => {
@@ -102,9 +101,8 @@ async function downloadFile(slotIndex, fileIndex, sizeCallback) {
 // Gets the JSON object describing the current format that the datalogger is
 // recording in.
 async function getDataFormat() {
-    await sendCommand(1, 0, 0);
+    const usb = await sendCommand(1, 0, 0);
 
-    const usb = openUsbPort();
     let buffer = Buffer.alloc(0);
     let expectedSize = 0;
     usb.on('error', console.error);
@@ -116,7 +114,6 @@ async function getDataFormat() {
                 data = data.subarray(4);
             }
             buffer = Buffer.concat([buffer, data]);
-            console.log(`Got ${buffer.length} of ${expectedSize} bytes.`);
             if (buffer.length > expectedSize) {
                 rej(new Error('Received more data than expected!'));
             } else if (buffer.length === expectedSize) {
